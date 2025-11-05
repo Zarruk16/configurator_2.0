@@ -35,10 +35,10 @@
   background: none;
   border: none;
   color: #fff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 400;
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 6px 10px;
   position: relative;
   transition: color 0.2s;
   font-family: 'Bodoni Moda', serif;
@@ -130,7 +130,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  padding: 12px;
+  padding: 8px;
   position: relative;
   color: #fff;
 }
@@ -139,21 +139,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .crown-cascade-tab .feature-label {
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   font-family: 'Bodoni Moda', serif;
   transition: color 0.2s;
   margin-top: auto;
   position: absolute;
-  bottom: 12px;
+  bottom: 8px;
   width: 100%;
   text-align: center;
 }
@@ -232,7 +232,7 @@
   height: 100%;
   aspect-ratio: 1;
   border: none;
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -272,21 +272,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .feature-label {
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   font-family: 'Bodoni Moda', serif;
   transition: color 0.2s;
   margin-top: auto;
   position: absolute;
-  bottom: 12px;
+  bottom: 8px;
   width: 100%;
   text-align: center;
 }
@@ -308,8 +308,8 @@
   background-color: transparent;
   border: 0.2px solid #44444475;
   border-radius: 12px;
-  padding: 12px 14px;
-  min-height: 56px;
+  padding: 10px 12px;
+  min-height: 50px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -379,9 +379,9 @@
   background-color: transparent;
   border: 0.2px solid #44444475;
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
   font-family: 'Bodoni Moda', serif;
   cursor: pointer;
@@ -394,7 +394,7 @@
   min-width: 0;
   position: relative;
   z-index: 0;
-  min-height: 40px;
+  min-height: 36px;
   overflow: visible;
   text-overflow: ellipsis;
 }
@@ -526,9 +526,9 @@
   background-color: transparent;
   border: 0.2px solid #44444475;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   box-sizing: border-box;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .content-grid-wrapper::before {
@@ -586,11 +586,16 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-family: 'Bodoni Moda', serif;
   position: relative;
   cursor: pointer;
   transition: all 0.2s;
+  padding: 8px;
+  box-sizing: border-box;
+  text-align: center;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .grid-item:hover {

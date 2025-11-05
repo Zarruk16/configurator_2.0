@@ -3,7 +3,7 @@ import './ConfigurationPanel.css'
 
 // SVG Icons Components
 const GemsIcon = ({ isActive }) => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#533e17" />
@@ -31,7 +31,7 @@ const GemsIcon = ({ isActive }) => (
 )
 
 const CutsIcon = ({ isActive }) => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="iconGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#533e17" />
@@ -63,7 +63,7 @@ const CutsIcon = ({ isActive }) => (
 )
 
 const ColorIcon = ({ isActive }) => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="iconGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#533e17" />
@@ -105,7 +105,7 @@ const ColorIcon = ({ isActive }) => (
 )
 
 const CrownIcon = ({ isActive }) => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="iconGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#533e17" />
@@ -136,7 +136,7 @@ const CrownIcon = ({ isActive }) => (
 )
 
 const CascadeIcon = ({ isActive }) => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="iconGradient5" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#533e17" />
