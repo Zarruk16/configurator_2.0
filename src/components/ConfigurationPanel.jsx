@@ -281,6 +281,8 @@ function ConfigurationPanel() {
   const contentGridRef = useRef(null)
   const [sliderValue, setSliderValue] = useState(50) // Slider value for Size/Cuts
   const [selectedGem, setSelectedGem] = useState({ category: 'Precious', itemIndex: null }) // Track selected gem for Color feature
+  const [selectedMaterial, setSelectedMaterial] = useState(null) // Track selected material/texture for color selection
+  const [showColorPicker, setShowColorPicker] = useState(false) // Show color picker when material is selected
 
   const tabs = ['Adornment', 'Form & Fit', 'Experience']
   
@@ -304,6 +306,117 @@ function ConfigurationPanel() {
   }
   
   const features = getFeatures()
+
+  // Get color options for specific materials and textures
+  const getMaterialColors = (materialName) => {
+    const materialColorMap = {
+      // Leather & Leather-Equivalent Types
+      'Nappa': ['Black', 'White', 'Ivory', 'Brown', 'Cognac', 'Tan', 'Navy', 'Burgundy', 'Grey', 'Charcoal'],
+      'Calfskin': ['Black', 'White', 'Brown', 'Cognac', 'Tan', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Taupe'],
+      'Patent': ['Black', 'White', 'Red', 'Navy', 'Burgundy', 'Pink', 'Silver', 'Gold', 'Metallic'],
+      'Suede': ['Black', 'Brown', 'Tan', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Olive', 'Rust', 'Taupe'],
+      'Nubuck': ['Black', 'Brown', 'Tan', 'Navy', 'Grey', 'Charcoal', 'Olive', 'Taupe'],
+      'Saffiano': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Red'],
+      'Aniline': ['Black', 'Brown', 'Cognac', 'Tan', 'Navy', 'Burgundy', 'Grey', 'Charcoal'],
+      'Metallic': ['Gold', 'Silver', 'Bronze', 'Copper', 'Gunmetal', 'Rose', 'Champagne'],
+      'Mirror': ['Black', 'Silver', 'Gold', 'Rose', 'Champagne', 'Gunmetal'],
+      'Pearlized': ['White', 'Ivory', 'Cream', 'Pink', 'Lavender', 'Sky', 'Champagne', 'Pearl'],
+      'Lacquered': ['Black', 'Red', 'Navy', 'Burgundy', 'Pink', 'Gold', 'Silver', 'Metallic'],
+      'Croc': ['Black', 'Brown', 'Tan', 'Cognac', 'Navy', 'Burgundy', 'Grey'],
+      'Snakeskin': ['Black', 'Brown', 'Tan', 'Olive', 'Charcoal', 'Grey', 'Taupe'],
+      
+      // Non-leather structural textiles
+      'Satin': ['Black', 'White', 'Ivory', 'Navy', 'Burgundy', 'Pink', 'Rose', 'Lavender', 'Sky', 'Gold', 'Silver'],
+      'Brocade': ['Black', 'Navy', 'Burgundy', 'Gold', 'Silver', 'Bronze', 'Rose', 'Champagne'],
+      'Technical': ['Black', 'Grey', 'Charcoal', 'Navy', 'White', 'Silver'],
+      'Mesh': ['Black', 'White', 'Grey', 'Navy', 'Charcoal', 'Silver'],
+      'Microfiber': ['Black', 'Grey', 'Charcoal', 'Navy', 'White', 'Taupe'],
+      
+      // Vegan & eco-materials
+      'Recycled': ['Black', 'Grey', 'Charcoal', 'Brown', 'Taupe', 'Navy'],
+      'Bio': ['Black', 'Brown', 'Tan', 'Olive', 'Grey', 'Taupe'],
+      'Premium': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal'],
+      'Eco': ['Black', 'Brown', 'Tan', 'Olive', 'Grey', 'Taupe', 'Natural'],
+      
+      // Sheer & Decorative Layers
+      'Organza': ['White', 'Ivory', 'Cream', 'Pink', 'Rose', 'Lavender', 'Sky', 'Champagne', 'Blush'],
+      'Tulle': ['White', 'Ivory', 'Black', 'Pink', 'Rose', 'Lavender', 'Sky', 'Champagne'],
+      'Chiffon': ['White', 'Ivory', 'Pink', 'Rose', 'Lavender', 'Sky', 'Champagne', 'Blush', 'Peach'],
+      'Lace': ['White', 'Ivory', 'Black', 'Cream', 'Pink', 'Rose', 'Champagne', 'Blush'],
+      'Veils': ['White', 'Ivory', 'Black', 'Cream', 'Champagne', 'Pearl'],
+      
+      // Underlays & Structural Fabrics
+      'Moiré': ['Black', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Silver'],
+      'Velvet': ['Black', 'Navy', 'Burgundy', 'Wine', 'Emerald', 'Royal', 'Charcoal', 'Plum'],
+      'Woven': ['Black', 'Brown', 'Tan', 'Navy', 'Grey', 'Charcoal', 'Taupe'],
+      
+      // Decorative Textiles & Threads
+      'Jacquard': ['Black', 'Navy', 'Burgundy', 'Gold', 'Silver', 'Rose', 'Champagne'],
+      'Lurex': ['Gold', 'Silver', 'Bronze', 'Rose', 'Champagne', 'Metallic'],
+      'Embroidery': ['Black', 'White', 'Gold', 'Silver', 'Rose', 'Champagne', 'Navy', 'Burgundy'],
+      'Sequined': ['Black', 'Gold', 'Silver', 'Rose', 'Champagne', 'Metallic', 'Navy'],
+      'Threaded': ['Black', 'Gold', 'Silver', 'Rose', 'Champagne', 'Navy', 'Burgundy'],
+      
+      // Finish Treatments
+      'Matte': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Taupe'],
+      'Soft': ['Black', 'White', 'Ivory', 'Cream', 'Brown', 'Grey', 'Taupe', 'Beige'],
+      'Satin': ['Black', 'White', 'Ivory', 'Navy', 'Burgundy', 'Pink', 'Rose', 'Lavender', 'Sky', 'Gold', 'Silver'],
+      'Semi': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal'],
+      'Gloss': ['Black', 'White', 'Red', 'Navy', 'Burgundy', 'Pink', 'Silver', 'Gold', 'Metallic'],
+      'Mirror': ['Black', 'Silver', 'Gold', 'Rose', 'Champagne', 'Gunmetal'],
+      'Foil': ['Gold', 'Silver', 'Bronze', 'Copper', 'Rose', 'Champagne', 'Metallic'],
+      'Brushed': ['Silver', 'Gold', 'Bronze', 'Copper', 'Gunmetal', 'Rose', 'Champagne'],
+      'Iridescent': ['White', 'Pink', 'Lavender', 'Sky', 'Champagne', 'Pearl', 'Metallic'],
+      'Holographic': ['Silver', 'Gold', 'Metallic', 'Rainbow'],
+      'Pearlescent': ['White', 'Ivory', 'Cream', 'Pink', 'Lavender', 'Sky', 'Champagne', 'Pearl'],
+      'Crystalline': ['White', 'Cream', 'Champagne', 'Pearl', 'Silver', 'Gold'],
+      'Frosted': ['White', 'Ivory', 'Cream', 'Champagne', 'Pearl', 'Silver'],
+      'Ombré': ['Black', 'Navy', 'Burgundy', 'Pink', 'Rose', 'Lavender', 'Sky', 'Gold', 'Silver']
+    }
+    
+    // Return colors for the specific material, or default palette if not found
+    return materialColorMap[materialName] || [
+      'Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal'
+    ]
+  }
+
+  // Get hex color for color name - realistic luxury material colors
+  const getColorHex = (colorName) => {
+    const colorMap = {
+      // Neutrals - sophisticated and natural
+      'Black': '#0A0A0A', 'White': '#FAFAF8', 'Ivory': '#F5F3ED', 'Cream': '#F0EDE1', 
+      'Beige': '#E8E3D5', 'Taupe': '#8B7D6B', 'Brown': '#5C4033', 'Cognac': '#8B4513', 'Tan': '#C19A6B',
+      'Grey': '#6B6B6B', 'Charcoal': '#2F2F2F', 'Slate': '#5A5A5A', 'Stone': '#8B8680',
+      
+      // Blues - deep and refined
+      'Navy': '#1A1F3A', 'Royal': '#2C3E7A', 'Midnight': '#1A1A2E', 'Sky': '#B8D4E3', 'Powder': '#D0E4E8',
+      
+      // Reds - rich and elegant
+      'Red': '#8B0000', 'Burgundy': '#4A0E0E', 'Wine': '#5C1A1A', 'Crimson': '#8B1A1A', 'Scarlet': '#8B1C1C',
+      
+      // Pinks - soft and refined
+      'Pink': '#D4A5A5', 'Rose': '#C97D7D', 'Blush': '#D4A5A5', 'Fuchsia': '#B85C8B', 'Magenta': '#8B4789',
+      
+      // Purples - sophisticated
+      'Purple': '#5D4E75', 'Lavender': '#B8A9C9', 'Violet': '#6B4C7A', 'Plum': '#6B4C6B', 'Amethyst': '#8B7D9B',
+      
+      // Greens - natural and earthy
+      'Green': '#4A5D23', 'Forest': '#2F4F2F', 'Emerald': '#3D6B3D', 'Olive': '#6B6B3D', 'Sage': '#9CAF88', 'Mint': '#B8D4B8',
+      
+      // Yellows/Golds - warm and luxurious
+      'Yellow': '#D4AF37', 'Gold': '#C9A961', 'Amber': '#D4A85C', 'Mustard': '#C9A85C', 'Champagne': '#E8DCC0',
+      
+      // Oranges - warm and natural
+      'Orange': '#C97D3D', 'Coral': '#D4A5A5', 'Rust': '#8B4513', 'Terracotta': '#A85C3D', 'Peach': '#E8C9A5',
+      
+      // Metallics - realistic metal tones
+      'Metallic': '#8B8B8B', 'Bronze': '#8B6B3D', 'Copper': '#B87333', 'Gunmetal': '#2C2C2C', 'Silver': '#A8A8A8',
+      
+      // Special colors
+      'Pearl': '#F5F0E8', 'Natural': '#D4C5A9', 'Rainbow': '#8B7D6B'
+    }
+    return colorMap[colorName] || '#6B6B6B'
+  }
 
   // Get color content based on selected gem
   const getColorContent = (gemCategory) => {
@@ -432,11 +545,25 @@ function ConfigurationPanel() {
     return colorMap[gemCategory] || []
   }
 
+  // Check if current category should show colors after material selection
+  const shouldShowColors = () => {
+    if (activeFeature === 'Material & Structure') {
+      const colorableCategories = ['Base', 'Finish', 'Textiles']
+      return colorableCategories.includes(activeCategory) && selectedMaterial !== null
+    }
+    return false
+  }
+
   // Content items for each category
   const getCategoryContent = (category) => {
     // If Color feature is active, show colors based on selected gem
     if (activeFeature === 'Color') {
       return getColorContent(selectedGem.category)
+    }
+    
+    // If material/texture is selected, show color options for that specific material
+    if (shouldShowColors() && selectedMaterial) {
+      return getMaterialColors(selectedMaterial)
     }
     
     switch (category) {
@@ -893,6 +1020,8 @@ function ConfigurationPanel() {
   const handleCategoryChange = (category) => {
     setActiveCategory(category)
     setSelectedGridItem(null)
+    setSelectedMaterial(null)
+    setShowColorPicker(false)
   }
 
   // Check if there's more content to scroll
@@ -1063,6 +1192,25 @@ function ConfigurationPanel() {
         </div>
       )}
 
+      {/* Back button when showing colors for material */}
+      {shouldShowColors() && (
+        <div className="material-color-header">
+          <button
+            className="back-to-material-button"
+            onClick={() => {
+              setSelectedMaterial(null)
+              setShowColorPicker(false)
+              setSelectedGridItem(null)
+            }}
+          >
+            ← Back to {selectedMaterial}
+          </button>
+          <span className="material-color-label">
+            Select color for {selectedMaterial}
+          </span>
+        </div>
+      )}
+
       {/* Content Grid or Slider */}
       {activeFeature === 'Cuts' && activeCategory === 'Size' ? (
         <div className="content-grid-section">
@@ -1105,12 +1253,38 @@ function ConfigurationPanel() {
                       // Track gem selection for Color feature
                       setSelectedGem({ category: activeCategory, itemIndex: index })
                       setSelectedGridItem(index)
+                    } else if (activeFeature === 'Material & Structure' && shouldShowColors()) {
+                      // Color selection for material
+                      setSelectedGridItem(index)
+                      // Here you would apply the color to the selected material
+                    } else if (activeFeature === 'Material & Structure' && ['Base', 'Finish', 'Textiles'].includes(activeCategory)) {
+                      // Material/texture selection - show color picker
+                      setSelectedMaterial(item)
+                      setSelectedGridItem(index)
+                      setShowColorPicker(true)
                     } else {
                       setSelectedGridItem(index)
                     }
                   }}
+                  style={
+                    shouldShowColors() ? {
+                      // Show color swatch for color items
+                      background: `linear-gradient(135deg, ${getColorHex(item)} 0%, ${getColorHex(item)} 100%)`,
+                      backgroundSize: 'cover'
+                    } : {}
+                  }
                 >
-                  {item}
+                  {shouldShowColors() ? (
+                    <div style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      borderRadius: '8px',
+                      backgroundColor: getColorHex(item),
+                      border: selectedGridItem === index ? '2px solid #fffe88' : 'none'
+                    }}></div>
+                  ) : (
+                    item
+                  )}
                 </div>
               ))}
             </div>
