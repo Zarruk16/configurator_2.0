@@ -287,19 +287,32 @@ const FunctionDetailingIcon = ({ isActive }) => (
   </svg>
 )
 
-function ConfigurationPanel() {
-  const [activeTab, setActiveTab] = useState('Adornment')
-  const [activeFeature, setActiveFeature] = useState('Gems')
-  const [activeCategory, setActiveCategory] = useState('Precious')
-  const [selectedGridItem, setSelectedGridItem] = useState(null)
+function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) {
+  // Use shared state from props, with local state for UI-only concerns
+  const activeTab = configState.activeTab || 'Adornment'
+  const activeFeature = configState.activeFeature || 'Gems'
+  const activeCategory = configState.activeCategory || 'Precious'
+  const selectedGridItem = configState.selectedGridItem || null
+  const sliderValue = configState.sliderValue || 50
+  const selectedGem = configState.selectedGem || { category: 'Precious', itemIndex: null, gemName: null }
+  const selectedMaterial = configState.selectedMaterial || null
+  const showColorPicker = configState.showColorPicker || false
+  
+  // Local state for UI-only concerns
   const [categoryStartIndex, setCategoryStartIndex] = useState(0) // Start index for carousel
   const categoriesPerView = 4 // Number of categories to show at once
   const [hasMoreContent, setHasMoreContent] = useState(false)
   const contentGridRef = useRef(null)
-  const [sliderValue, setSliderValue] = useState(50) // Slider value for Size/Cuts
-  const [selectedGem, setSelectedGem] = useState({ category: 'Precious', itemIndex: null, gemName: null }) // Track selected gem for Color feature
-  const [selectedMaterial, setSelectedMaterial] = useState(null) // Track selected material/texture for color selection
-  const [showColorPicker, setShowColorPicker] = useState(false) // Show color picker when material is selected
+  
+  // Helper functions to update shared state
+  const setActiveTab = (tab) => updateConfigState({ activeTab: tab })
+  const setActiveFeature = (feature) => updateConfigState({ activeFeature: feature })
+  const setActiveCategory = (category) => updateConfigState({ activeCategory: category })
+  const setSelectedGridItem = (item) => updateConfigState({ selectedGridItem: item })
+  const setSliderValue = (value) => updateConfigState({ sliderValue: value })
+  const setSelectedGem = (gem) => updateConfigState({ selectedGem: gem })
+  const setSelectedMaterial = (material) => updateConfigState({ selectedMaterial: material })
+  const setShowColorPicker = (show) => updateConfigState({ showColorPicker: show })
 
   const tabs = ['Adornment', 'Form', 'Experience']
   
@@ -375,10 +388,8 @@ function ConfigurationPanel() {
       // Finish Treatments
       'Matte': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal', 'Taupe'],
       'Soft': ['Black', 'White', 'Ivory', 'Cream', 'Brown', 'Grey', 'Taupe', 'Beige'],
-      'Satin': ['Black', 'White', 'Ivory', 'Navy', 'Burgundy', 'Pink', 'Rose', 'Lavender', 'Sky', 'Gold', 'Silver'],
       'Semi': ['Black', 'White', 'Brown', 'Navy', 'Burgundy', 'Grey', 'Charcoal'],
       'Gloss': ['Black', 'White', 'Red', 'Navy', 'Burgundy', 'Pink', 'Silver', 'Gold', 'Metallic'],
-      'Mirror': ['Black', 'Silver', 'Gold', 'Rose', 'Champagne', 'Gunmetal'],
       'Foil': ['Gold', 'Silver', 'Bronze', 'Copper', 'Rose', 'Champagne', 'Metallic'],
       'Brushed': ['Silver', 'Gold', 'Bronze', 'Copper', 'Gunmetal', 'Rose', 'Champagne'],
       'Iridescent': ['White', 'Pink', 'Lavender', 'Sky', 'Champagne', 'Pearl', 'Metallic'],
@@ -766,7 +777,7 @@ function ConfigurationPanel() {
       'Golden': '#FFD700', 'Honey': '#F0A500', 'Caramel': '#D2691E',
       
       // Oranges - warm and natural
-      'Orange': '#C97D3D', 'Coral': '#D4A5A5', 'Rust': '#8B4513', 'Terracotta': '#A85C3D', 'Peach': '#E8C9A5',
+      'Orange': '#C97D3D', 'Coral': '#D4A5A5', 'Rust': '#8B4513', 'Terracotta': '#A85C3D',
       
       // Diamond colors
       'Colorless': '#F5F5F5', 'Near Colorless': '#F0F0F0', 'Faint Yellow': '#FFFACD', 'Light Yellow': '#FFE4B5', 'Very Light Yellow': '#FFEFD5',
@@ -1052,7 +1063,6 @@ function ConfigurationPanel() {
       'Earth Tones': ['Brown', 'Tan', 'Beige', 'Olive', 'Rust', 'Terracotta'],
       'Jewel Tones': ['Royal Blue', 'Emerald Green', 'Ruby Red', 'Amethyst Purple', 'Sapphire Blue'],
       'Metallic': ['Gold', 'Silver', 'Bronze', 'Copper', 'Platinum', 'Gunmetal'],
-      'Iridescent': ['Iridescent', 'Opalescent', 'Rainbow', 'Holographic'],
       
       // Textures
       'Smooth': ['White', 'Black', 'Grey', 'Beige', 'Brown'],
@@ -1065,7 +1075,6 @@ function ConfigurationPanel() {
       'Rough': ['Brown', 'Grey', 'Black', 'Beige'],
       
       // Special Effects
-      'Iridescent': ['Iridescent', 'Opalescent', 'Rainbow', 'Holographic'],
       'Opalescent': ['White', 'Blue', 'Pink', 'Green', 'Iridescent'],
       'Chatoyant': ['Brown', 'Gold', 'Yellow', 'Green', 'Grey'],
       'Asterism': ['Red', 'Blue', 'Pink', 'Purple', 'Grey'],
@@ -1224,11 +1233,76 @@ function ConfigurationPanel() {
       // Gems shows colors when a gem is selected, but not for Special Effects category
       return selectedGem.gemName !== null && activeCategory !== 'Special Effects'
     }
+    if (activeFeature === 'Crown' || activeFeature === 'Cascade') {
+      // Crown and Cascade always show colors directly (no categories)
+      return true
+    }
     return false
   }
 
   // Content items for each category
   const getCategoryContent = (category) => {
+    // For Crown and Cascade features, show ALL gemstone varieties and colors directly (no category)
+    // Check this FIRST before other conditions
+    if (activeFeature === 'Crown' || activeFeature === 'Cascade' || category === 'Crown' || category === 'Cascade') {
+      // Combine ALL gems from all categories plus comprehensive color palette
+      const allGems = [
+        // Precious Gems
+        'Diamond', 'Emerald', 'Ruby', 'Sapphire', 'Alexandrite', 'Benitoite', 'Jadeite', 'Paraiba Tourmaline', 'Red Spinel',
+        // Semi-Precious Gems
+        'Agate', 'Amazonite', 'Amethyst', 'Ametrine', 'Apatite', 'Aquamarine', 'Aventurine', 'Bloodstone', 'Carnelian',
+        'Chalcedony', 'Chrysoprase', 'Citrine', 'Fluorite', 'Garnet', 'Goshenite', 'Heliodor', 'Hematite', 'Howlite',
+        'Iolite', 'Jasper', 'Kyanite', 'Labradorite', 'Lapis Lazuli', 'Larimar', 'Lepidolite', 'Malachite', 'Moonstone',
+        'Morganite', 'Obsidian', 'Onyx', 'Opal', 'Peridot', 'Prehnite', 'Pyrite', 'Rainbow Moonstone', 'Rhodochrosite',
+        'Rhodonite', 'Rose Quartz', 'Serpentine', 'Smoky Quartz', 'Sodalite', 'Spinel', 'Sunstone', 'Tanzanite',
+        'Tiger\'s Eye', 'Topaz', 'Tourmaline', 'Turquoise', 'Unakite', 'Zircon', 'Tsavorite', 'Dumortierite',
+        // Organic Gems
+        'Amber', 'Ammolite', 'Bone', 'Bog Oak', 'Coral', 'Copal', 'Fossilized Wood', 'Ivory', 'Jet', 'Mother-of-Pearl',
+        'Nacre', 'Odontolite', 'Pearl', 'Shell', 'Tortoiseshell', 'Tagua Nut',
+        // Man-Made
+        'Synthetic Diamond', 'Synthetic Ruby', 'Synthetic Sapphire', 'Synthetic Spinel', 'Synthetic Quartz',
+        'Synthetic Emerald', 'Synthetic Alexandrite', 'Synthetic Moissanite', 'Synthetic Aquamarine', 'Synthetic Topaz',
+        'Synthetic Opal', 'Synthetic Jadeite', 'Synthetic Lapis Lazuli', 'Synthetic Turquoise', 'Synthetic Malachite',
+        'Cubic Zirconia', 'Opalite', 'Swarovski Crystal', 'Bismuth Crystal', 'Glass Gemstones', 'Goldstone', 'Paste',
+        // Extended Natural
+        'Amblygonite', 'Andalusite', 'Axinite', 'Azurite', 'Austrophyllite', 'Beryl (RARE types)', 'Brookite', 'Cassiterite',
+        'Charoite', 'Chrysocolla', 'Clinohumite', 'Diaspore (Zultanite)', 'Dioptase', 'Dravite', 'Ekanite', 'Enstatite',
+        'Euclase', 'Fluorite (Collector-grade)', 'Gaspeite', 'Grandidierite', 'Hackmanite', 'Hemimorphite', 'Hessonite',
+        'Idocrase (Vesuvianite)', 'Iolite (Uncommon grades)', 'Jeremejevite', 'Kornerupine', 'Kämmererite', 'Kudite',
+        'Lazulite', 'Liddicoatite', 'Magnesite', 'Musgravite', 'Muscovite', 'Painite', 'Pectolite', 'Petalite', 'Pietersite',
+        'Poudretteite', 'Prehnite (Collector grades)', 'Scapolite', 'Seraphinite', 'Serendibite', 'Shattuckite', 'Smithsonite',
+        'Sphalerite', 'Sphene (Titanite)', 'Stichtite', 'Sugilite', 'Taaffeite', 'Thulite', 'Tremolite', 'Variscite',
+        'Vesuvianite', 'Zoisite',
+        // Comprehensive Color Palette
+        'Black', 'White', 'Red', 'Deep Red', 'Crimson', 'Scarlet', 'Burgundy', 'Wine', 'Ruby Red', 'Pink-Red', 'Purple-Red',
+        'Orange-Red', 'Cherry', 'Blood Red', 'Vivid Red', 'Intense Red', 'Pigeon Blood Red',
+        'Blue', 'Deep Blue', 'Royal Blue', 'Cornflower Blue', 'Sky Blue', 'Navy Blue', 'Midnight Blue', 'Steel Blue',
+        'Light Blue', 'Medium Blue', 'Sea Blue', 'Pale Blue', 'Sapphire Blue', 'Indigo', 'Teal', 'Turquoise', 'Cyan', 'Aqua',
+        'Green', 'Deep Green', 'Forest Green', 'Emerald Green', 'Mint Green', 'Light Green', 'Yellow-Green', 'Blue-Green',
+        'Dark Green', 'Medium Green', 'Pale Green', 'Vivid Green', 'Intense Green', 'Bluish Green', 'Yellowish Green',
+        'Grass Green', 'Leaf Green', 'Apple Green', 'Moss Green', 'Spinach Green', 'Lime Green', 'Neon Green', 'Electric Green',
+        'Yellow', 'Golden', 'Amber', 'Light Yellow', 'Dark Yellow', 'Orange-Yellow', 'Golden Yellow', 'Madeira', 'Pale Yellow',
+        'Fancy Yellow', 'Faint Yellow', 'Very Light Yellow', 'Canary Yellow', 'Lemon Yellow', 'Butter Yellow',
+        'Orange', 'Coral', 'Rust', 'Terracotta', 'Peach', 'Apricot', 'Tangerine', 'Burnt Orange', 'Pumpkin', 'Copper',
+        'Pink', 'Rose', 'Blush', 'Fuchsia', 'Magenta', 'Salmon', 'Watermelon', 'Light Pink', 'Dusty Rose', 'Hot Pink',
+        'Bubblegum', 'Fancy Pink', 'Fancy Intense Pink', 'Fancy Vivid Pink',
+        'Purple', 'Lavender', 'Violet', 'Plum', 'Amethyst Purple', 'Deep Purple', 'Pink-Purple', 'Mauve', 'Lilac', 'Orchid',
+        'Grape', 'Light Purple', 'Dark Purple', 'Rose de France',
+        'Brown', 'Tan', 'Cognac', 'Beige', 'Taupe', 'Caramel', 'Chocolate', 'Coffee', 'Mocha', 'Chestnut', 'Mahogany',
+        'Walnut', 'Dark Brown', 'Fancy Brown', 'Fancy Intense Brown',
+        'Grey', 'Charcoal', 'Slate', 'Stone', 'Silver', 'Platinum', 'Pearl', 'Colorless', 'Near Colorless', 'Ash', 'Smoke',
+        'Metallic', 'Gunmetal', 'Chrome', 'Nickel', 'Titanium', 'Brass', 'Palladium', 'Rhodium', 'Steel',
+        'Gold', 'Rose Gold', 'White Gold', 'Platinum', 'Champagne Gold', '18K Gold', '14K Gold', '22K Gold', '24K Gold',
+        'Sterling Silver', 'White Silver', 'Gunmetal Silver',
+        // Special Colors
+        'Colorless (D-F)', 'Near Colorless (G-J)', 'Faint Yellow (K-M)', 'Very Light Yellow (N-R)', 'Light Yellow (S-Z)',
+        'Fancy Blue', 'Fancy Intense Blue', 'Fancy Vivid Blue', 'Fancy Green', 'Fancy Intense Green', 'Fancy Vivid Green',
+        'Fancy Orange', 'Fancy Red', 'Fancy Purple', 'Fancy Deep', 'Fancy Dark', 'Fancy Light',
+        'Bi-color', 'Parti-color', 'Color Change', 'Rainbow', 'Multi-color', 'Iridescent', 'Opalescent', 'Holographic'
+      ]
+      return allGems
+    }
+    
     // If Gems feature and gem is selected, show colors for that gem
     if (activeFeature === 'Gems' && shouldShowColors() && selectedGem.gemName) {
       return getGemColors(selectedGem.gemName)
@@ -1250,7 +1324,7 @@ function ConfigurationPanel() {
     }
     
     // For Heel feature, show materials directly (no category)
-    if (activeFeature === 'Heel' && !category) {
+    if (activeFeature === 'Heel' && (!category || category === 'Heel')) {
       return [
         'Gold', 'Rose Gold', 'Platinum', 'Silver', 'Titanium',
         'Brass', 'Bronze', 'Copper', 'Chrome', 'Nickel',
@@ -1680,6 +1754,20 @@ function ConfigurationPanel() {
           'Brass', 'Bronze', 'Copper', 'Chrome', 'Nickel',
           'Palladium', 'Rhodium', 'Gunmetal', 'Steel'
         ]
+      // Crown categories - show gemstone colors
+      case 'Style':
+        return ['Diamond', 'Ruby', 'Sapphire', 'Emerald', 'Amethyst', 'Topaz', 'Pearl', 'Opal', 'Garnet', 'Aquamarine', 'Peridot', 'Citrine', 'Tanzanite', 'Tourmaline']
+      case 'Height':
+        return ['Low', 'Medium', 'High', 'Extra High']
+      case 'Width':
+        return ['Narrow', 'Standard', 'Wide', 'Extra Wide']
+      // Cascade categories - show gemstone colors and patterns
+      case 'Pattern':
+        return ['Diamond', 'Ruby', 'Sapphire', 'Emerald', 'Amethyst', 'Topaz', 'Pearl', 'Opal', 'Garnet', 'Aquamarine', 'Peridot', 'Citrine', 'Tanzanite', 'Tourmaline']
+      case 'Flow':
+        return ['Smooth', 'Graduated', 'Cascading', 'Layered', 'Spiral', 'Wave']
+      case 'Direction':
+        return ['Vertical', 'Horizontal', 'Diagonal', 'Radial', 'Circular']
       default:
         return []
     }
@@ -1696,9 +1784,9 @@ function ConfigurationPanel() {
       case 'Color':
         return [] // No categories for Color, show colors directly
       case 'Crown':
-        return ['Style', 'Height', 'Width']
+        return [] // No categories, show colors directly
       case 'Cascade':
-        return ['Pattern', 'Flow', 'Direction']
+        return [] // No categories, show colors directly
       // Form categories
       case 'Sole/Strap':
         return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
@@ -1750,9 +1838,9 @@ function ConfigurationPanel() {
         case 'Color':
           return ['Hue', 'Saturation', 'Brightness']
         case 'Crown':
-          return ['Style', 'Height', 'Width']
+          return [] // No categories, show colors directly
         case 'Cascade':
-          return ['Pattern', 'Flow', 'Direction']
+          return [] // No categories, show colors directly
         case 'Sole/Strap':
           return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
         case 'Heel':
@@ -1968,10 +2056,10 @@ function ConfigurationPanel() {
               setHasMoreContent(hasScroll && !isAtBottom)
             }}
           >
-            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory))) ? 'color-grid' : ''}`}>
+            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel' || activeFeature === 'Crown' || activeFeature === 'Cascade')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory))) ? 'color-grid' : ''}`}>
               {(() => {
-                const content = getCategoryContent(activeFeature === 'Color' ? 'Color' : (activeFeature === 'Heel' ? 'Heel' : (activeFeature === 'Gems' && shouldShowColors() ? 'Gems' : activeCategory)))
-                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory))) && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
+                const content = getCategoryContent(activeFeature === 'Color' ? 'Color' : (activeFeature === 'Heel' ? 'Heel' : (activeFeature === 'Crown' ? 'Crown' : (activeFeature === 'Cascade' ? 'Cascade' : (activeFeature === 'Gems' && shouldShowColors() ? 'Gems' : activeCategory)))))
+                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory)) || activeFeature === 'Crown' || activeFeature === 'Cascade') && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
                 const organizedContent = isColorContent ? organizeColorsByFamily(content) : content
                 return organizedContent
               })().map((item, index) => {
@@ -1997,17 +2085,22 @@ function ConfigurationPanel() {
                         const gemName = itemName
                         setSelectedGem({ category: activeCategory, itemIndex: index, gemName: gemName })
                         setSelectedGridItem(index)
+                        // Clear previous color selection when selecting a new gem
+                        updateConfigState({ selectedColorName: null })
                       } else if (activeFeature === 'Gems' && shouldShowColors()) {
                         // Color selection for gem
                         setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
                         // Here you would apply the color to the selected gem
                       } else if (activeFeature === 'Color' && shouldShowColors()) {
                         // Color selection for gem
                         setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
                         // Here you would apply the color to the selected gem
                       } else if (activeFeature === 'Material & Structure' && shouldShowColors()) {
                         // Color selection for material
                         setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
                         // Here you would apply the color to the selected material
                       } else if (activeFeature === 'Material & Structure' && ['Base', 'Finish', 'Textiles'].includes(activeCategory)) {
                         // Material/texture selection - show color picker
@@ -2022,13 +2115,20 @@ function ConfigurationPanel() {
                       } else if (activeFeature === 'Heel' && shouldShowColors()) {
                         // Color selection for Heel material
                         setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
                         // Here you would apply the color to the selected material
                       } else if (isSoleStrap) {
                         // Sole/Strap color selection
                         setSelectedGridItem(index)
-                        // Here you would apply the color
-                      } else {
+                        updateConfigState({ selectedColorName: itemName })
+                      } else if (activeFeature === 'Crown' || activeFeature === 'Cascade') {
+                        // Crown and Cascade - treat selections as gemstone materials/colors
                         setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
+                      } else {
+                        // Default: apply selection as color/material
+                        setSelectedGridItem(index)
+                        updateConfigState({ selectedColorName: itemName })
                       }
                     }}
                     style={
