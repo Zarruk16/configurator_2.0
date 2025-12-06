@@ -24,11 +24,13 @@ dist-ssr
 *.sw?
 
 # Large 3D model files (exceed GitHub's 100MB limit)
-# Note: render.glb is tracked with Git LFS, so it's not ignored
+# These should be uploaded to Vercel Blob Storage or CDN
 assets/*.fbx
 assets/*.glb
 public/assets/*.fbx
-# Allow smaller model files (under 100MB)
-# public/assets/shoe.glb is allowed (34MB)
+public/assets/*.glb
+public/assets/**/*.exr
+public/assets/enviroments/*.hdr
+# Allow smaller model files (under 100MB) - but use blob storage for deployment
 
 
