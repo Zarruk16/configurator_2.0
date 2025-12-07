@@ -28,7 +28,8 @@ dist-ssr
 assets/*.fbx
 assets/*.glb
 public/assets/*.fbx
-public/assets/*.glb
+# Allow the new model file to be tracked
+!public/assets/shoe25-v1-v1-v4.glb
 public/assets/**/*.exr
 public/assets/enviroments/*.hdr
 # Allow smaller model files (under 100MB) - but use blob storage for deployment

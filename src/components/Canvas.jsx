@@ -395,8 +395,8 @@ function useBrownLeatherTextures() {
 
 // Component to load and display the shoe model
 function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {} }) {
-  // Use environment variable for model URL, fallback to Vercel Blob Storage URL
-  const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
+  // Use environment variable for model URL, fallback to local model file
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe25-v1-v1-v4.glb'
   const { scene } = useGLTF(modelPath)
   
   // Load brown leather textures directly for insole
@@ -2136,7 +2136,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
 }
 
 // Preload the model (commented out to allow progress tracking)
-// const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
+// const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe25-v1-v1-v4.glb'
 // useGLTF.preload(modelPath)
 
 // Brown leather textures are loaded directly via useBrownLeatherTextures hook
@@ -2229,8 +2229,8 @@ function GlassTable() {
 
 // Reflected shoe component - creates a shadow reflection below the model
 function ReflectedShoe({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {}, mainModelScene = null }) {
-  // Use environment variable for model URL, fallback to Vercel Blob Storage URL
-  const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
+  // Use environment variable for model URL, fallback to local model file
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe25-v1-v1-v4.glb'
   const { scene } = useGLTF(modelPath)
   
   // Use main model scene if provided, otherwise use loaded scene
