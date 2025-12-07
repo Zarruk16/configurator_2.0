@@ -310,7 +310,6 @@ function useMetalTextures() {
           texture.wrapS = RepeatWrapping
           texture.wrapT = RepeatWrapping
           texture.repeat.set(2, 2)
-          if (onLoad) onLoad(texture)
         },
         undefined,
         (error) => {
@@ -361,7 +360,6 @@ function useBrownLeatherTextures() {
           texture.minFilter = texture.constructor.LinearMipmapLinearFilter
           texture.magFilter = texture.constructor.LinearFilter
           texture.anisotropy = 2 // Reduced from default 16 for better performance
-          if (onLoad) onLoad(texture)
         },
         undefined,
         (error) => {
@@ -396,7 +394,7 @@ function useBrownLeatherTextures() {
 }
 
 // Component to load and display the shoe model
-function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {}, onLoad }) {
+function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {} }) {
   // Use environment variable for model URL, fallback to Vercel Blob Storage URL
   const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
   const { scene } = useGLTF(modelPath)
@@ -448,12 +446,6 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     return materials.length > 0 ? materials[0] : null // Use first material found
   }, [outsoleLeatherTextureScene])
   
-  // Notify parent when model is loaded
-  React.useEffect(() => {
-    if (scene && onLoad) {
-      onLoad()
-    }
-  }, [scene, onLoad])
   
   // Clone the scene to avoid mutating the original
   const clonedScene = useMemo(() => {
@@ -2157,11 +2149,11 @@ function LoadingProgress() {
   
   return (
     <Html center>
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
+    <div className="loading-container">
+      <div className="loading-spinner"></div>
         <div className="loading-text">
           Loading 3D Model... {Math.round(progress)}%
-        </div>
+    </div>
         <div className="loading-bar-container">
           <div 
             className="loading-bar" 
@@ -2173,15 +2165,6 @@ function LoadingProgress() {
   )
 }
 
-// Loading component for outside Canvas (fallback)
-function LoadingIndicator() {
-  return (
-    <div className="loading-container">
-      <div className="loading-spinner"></div>
-      <div className="loading-text">Loading 3D Model...</div>
-    </div>
-  )
-}
 
 // Custom studio environment component - provides environment map for model reflections only
 // Studio environment component - loads HDR environment from assets
@@ -2510,7 +2493,6 @@ function ReflectedShoe({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], 
 
 function Canvas({ configState = {} }) {
   const [hasError, setHasError] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(true)
   const [showReflection, setShowReflection] = React.useState(true)
 
   if (hasError) {
@@ -2555,7 +2537,6 @@ function Canvas({ configState = {} }) {
         </div>
       </div>
       </div>
-      {isLoading && <LoadingIndicator />}
       <R3FCanvas
         camera={{ position: [500, 150, 500], fov: 50, near: 0.1, far: 10000 }}
         gl={{ antialias: true }}
@@ -2631,7 +2612,6 @@ function Canvas({ configState = {} }) {
                 scale={30.0}
                 rotation={[0, 2, 0]}
                 configState={configState}
-                onLoad={() => setIsLoading(false)}
               />
               {showReflection && (
                 <ReflectedShoe 
