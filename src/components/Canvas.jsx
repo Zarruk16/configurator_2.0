@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo } from 'react'
 import { Canvas as R3FCanvas, useThree, useFrame } from '@react-three/fiber'
-import { OrbitControls, useGLTF, useTexture, Environment } from '@react-three/drei'
+import { OrbitControls, useGLTF, useTexture, Environment, useProgress, Html } from '@react-three/drei'
 import { MeshStandardMaterial, MeshPhysicalMaterial, PlaneGeometry, Color, DoubleSide, TextureLoader, RepeatWrapping, Mesh, Box3, Vector3, Vector2 } from 'three'
 import './Canvas.css'
 
@@ -2143,13 +2143,37 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   )
 }
 
-// Preload the model
-const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
-useGLTF.preload(modelPath)
+// Preload the model (commented out to allow progress tracking)
+// const modelPath = import.meta.env.VITE_MODEL_URL || 'https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/shoe25-v1-2ehVyRgTTZNPJYSj4YfvtUaTP7BE6B.glb'
+// useGLTF.preload(modelPath)
 
 // Brown leather textures are loaded directly via useBrownLeatherTextures hook
 
-// Loading component for model loading
+// Loading component for model loading with progress - used inside Canvas
+function LoadingProgress() {
+  const { progress, active } = useProgress()
+  
+  if (!active) return null
+  
+  return (
+    <Html center>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <div className="loading-text">
+          Loading 3D Model... {Math.round(progress)}%
+        </div>
+        <div className="loading-bar-container">
+          <div 
+            className="loading-bar" 
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      </div>
+    </Html>
+  )
+}
+
+// Loading component for outside Canvas (fallback)
 function LoadingIndicator() {
   return (
     <div className="loading-container">
@@ -2541,6 +2565,7 @@ function Canvas({ configState = {} }) {
         }}
         style={{ background: '#000000' }}
       >
+            <LoadingProgress />
             <Suspense fallback={null}>
               {/* Studio environment from HDR file */}
               <StudioEnvironment />
