@@ -1,5 +1,5 @@
 import React, { Suspense, useMemo } from 'react'
-import { Canvas as R3FCanvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas as R3FCanvas, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture, Environment, useProgress, Html } from '@react-three/drei'
 import { MeshStandardMaterial, MeshPhysicalMaterial, PlaneGeometry, Color, DoubleSide, TextureLoader, RepeatWrapping, Mesh, Box3, Vector3, Vector2 } from 'three'
 import './Canvas.css'
@@ -396,7 +396,7 @@ function useBrownLeatherTextures() {
 // Component to load and display the shoe model
 function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {} }) {
   // Use environment variable for model URL, fallback to local model file
-  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe26-v1.glb'
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
   const { scene } = useGLTF(modelPath)
   
   // Load brown leather textures directly for insole
@@ -523,6 +523,12 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                name.includes('_crown') || name.startsWith('crown') || name.endsWith('crown')) {
       mapping.feature = 'Crown'
       mapping.category = null // Crown has categories but we'll handle them in the configurator
+    } else if (name.includes('bead') || name.includes('beads') || name.startsWith('bead') || name.endsWith('bead')) {
+      mapping.feature = 'Beads'
+      mapping.category = null
+    } else if (name.includes('glass') || name.startsWith('glass') || name.endsWith('glass')) {
+      mapping.feature = 'Glass'
+      mapping.category = null
     } else if (name === 'g_default' || name.includes('default') || name === 'body' || 
                name === 'main' || name === 'base' || name === 'shoe' || name === 'upper') {
       mapping.feature = 'Material & Structure'
@@ -549,6 +555,12 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
         mapping.category = null
       } else if (name.includes('crown')) {
         mapping.feature = 'Crown'
+        mapping.category = null
+      } else if (name.includes('bead')) {
+        mapping.feature = 'Beads'
+        mapping.category = null
+      } else if (name.includes('glass')) {
+        mapping.feature = 'Glass'
         mapping.category = null
       } else if (name.includes('sole') || name.includes('strap') || name.includes('hardware')) {
         // Generic sole/strap mapping
@@ -671,12 +683,54 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
                 specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
                 envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
-                opacity: 0.85, // A little transparent when viewing from center
-                transparent: true, // Enable transparency
+                opacity: 1.0, // Solid - fully opaque
+                transparent: false, // Solid gems - no transparency
               }
             } else {
               // User has selected a color - skip default material setup
               return // Skip this mesh in default setup
+            }
+          } else if (meshMapping.feature === 'Beads') {
+            // Beads - diamond material with rainbow internal reflections
+            const diamondColor = new Color(getColorHex('Diamond'))
+            defaultMaterialProps = {
+              metalness: 0.0,
+              roughness: 0.0,
+              color: diamondColor.getHex(), // Diamond/colorless
+              usePhysicalMaterial: true,
+              transmission: 0.95, // Very high transmission for maximum internal reflections and sparkles
+              thickness: 5.0, // Increased thickness for more internal light bouncing and rainbow sparkles
+              ior: 2.42, // Diamond IOR - high IOR creates strong internal reflections and dispersion
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
+              sheen: 0.5,
+              sheenRoughness: 0.1,
+              specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
+              specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
+              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              opacity: 1.0, // Solid - fully opaque
+              transparent: false, // Solid - no transparency
+            }
+          } else if (meshMapping.feature === 'Glass') {
+            // Glass - realistic glass material with transparency and reflections
+            const glassColor = new Color('#FFFFFF') // Clear glass
+            defaultMaterialProps = {
+              metalness: 0.0,
+              roughness: 0.0, // Smooth glass surface
+              color: glassColor.getHex(), // Clear/white
+              usePhysicalMaterial: true,
+              transmission: 0.98, // Very high transmission for glass transparency
+              thickness: 0.5, // Thin glass thickness
+              ior: 1.5, // Glass IOR (typical glass is around 1.5)
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.0, // Perfectly smooth glass surface
+              sheen: 0.0,
+              sheenRoughness: 1.0,
+              specularIntensity: 0.5, // Moderate specular for glass reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular for glass
+              envMapIntensity: 1.2, // Higher environment reflections for glass
+              opacity: 0.9, // Slightly transparent for glass effect
+              transparent: true, // Enable transparency for glass
             }
           } else if (meshMapping.feature === 'Crown') {
             // Check if user has already selected a color for Crown - if so, skip default
@@ -833,14 +887,15 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
         const isOutsoleMesh = meshMapping && meshMapping.feature === 'Sole/Strap' && meshMapping.category === 'Outsole/Outstrap'
         
         if (isOutsoleMesh && outsoleLeatherMaterials) {
-          // Clone the leather material from GLTF for outsole with all texture maps
+          // Use smooth leather texture for outsole
           const outsoleLeatherMat = outsoleLeatherMaterials.clone()
           
           // Ensure all texture maps are properly set
           if (outsoleLeatherMat.map) outsoleLeatherMat.map.needsUpdate = true
           if (outsoleLeatherMat.normalMap) {
             outsoleLeatherMat.normalMap.needsUpdate = true
-            outsoleLeatherMat.normalScale = outsoleLeatherMat.normalScale || { x: 1, y: 1 }
+            // Reduce normal map intensity for smoother appearance
+            outsoleLeatherMat.normalScale = { x: 0.3, y: 0.3 } // Reduced from 1.0 for smoother look
           }
           if (outsoleLeatherMat.roughnessMap) {
             outsoleLeatherMat.roughnessMap.needsUpdate = true
@@ -852,28 +907,27 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             outsoleLeatherMat.aoMap.needsUpdate = true
           }
           
-          // Enhance material properties for realistic leather
           outsoleLeatherMat.side = DoubleSide
           outsoleLeatherMat.needsUpdate = true
           
-          // Convert to MeshPhysicalMaterial for better leather properties (sheen, clearcoat)
+          // Convert to MeshPhysicalMaterial for better leather properties
           let finalOutsoleLeatherMat = outsoleLeatherMat
           
           if (outsoleLeatherMat.isMeshStandardMaterial) {
-            // Create a new MeshPhysicalMaterial with all texture maps from the original
+            // Create a new MeshPhysicalMaterial with texture maps but smooth properties
             const physicalOutsoleMat = new MeshPhysicalMaterial({
               color: outsoleLeatherMat.color,
-              map: outsoleLeatherMat.map,
+              map: outsoleLeatherMat.map, // Keep texture for leather look
               normalMap: outsoleLeatherMat.normalMap,
-              normalScale: outsoleLeatherMat.normalScale || { x: 1, y: 1 },
+              normalScale: { x: 0.3, y: 0.3 }, // Reduced normal for smoother appearance
               roughnessMap: outsoleLeatherMat.roughnessMap,
               metalnessMap: outsoleLeatherMat.metalnessMap,
               aoMap: outsoleLeatherMat.aoMap,
               emissiveMap: outsoleLeatherMat.emissiveMap,
               side: DoubleSide,
-              // Outsole leather-specific properties for highly shiny, reflective appearance
+              // Outsole leather-specific properties for smooth, shiny, reflective appearance
               metalness: 0.3, // Increased metalness for more patent leather shine
-              roughness: 0.02, // Very low roughness for highly reflective, mirror-like shiny surface
+              roughness: 0.02, // Very low roughness for smooth, highly reflective surface
               sheen: 0.2, // Sheen for glossy appearance
               sheenRoughness: 0.2, // Smooth sheen for maximum shine
               sheenColor: new Color(0.8, 0.7, 0.6), // Warm leather sheen color
@@ -886,9 +940,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             outsoleLeatherMat.dispose()
             finalOutsoleLeatherMat = physicalOutsoleMat
           } else if (outsoleLeatherMat.isMeshPhysicalMaterial) {
-            // For physical materials, enhance leather properties for maximum shine
+            // For physical materials, enhance leather properties for smooth, shiny appearance
             outsoleLeatherMat.metalness = 0.3
-            outsoleLeatherMat.roughness = 0.02
+            outsoleLeatherMat.roughness = 0.02 // Very low roughness for smooth surface
             outsoleLeatherMat.sheen = 0.2
             outsoleLeatherMat.sheenRoughness = 0.2
             if (!outsoleLeatherMat.sheenColor) {
@@ -897,35 +951,80 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             outsoleLeatherMat.clearcoat = 0.3
             outsoleLeatherMat.clearcoatRoughness = 0.1
             outsoleLeatherMat.envMapIntensity = 1.8
+            // Reduce normal map intensity for smoother appearance
+            if (outsoleLeatherMat.normalMap) {
+              outsoleLeatherMat.normalScale = { x: 0.3, y: 0.3 }
+            }
           }
           
           child.material = finalOutsoleLeatherMat
           child.userData.isOutsoleMesh = true
-          child.userData.hasOutsoleLeatherTexture = true // Mark that this has leather texture
-        } else if (isInsoleMesh) {
-          // Create simple matte solid material for insole (no textures, no reflections)
-          const insoleMat = new MeshStandardMaterial({
-            color: new Color(defaultMaterialProps?.color || getColorHex('Brown')),
-            side: DoubleSide,
-            // Completely matte appearance - no shine, no reflections
-            metalness: 0.0, // Not metallic
-            roughness: 1.0, // Maximum roughness for completely matte finish
-            envMap: null, // No environment map
-            envMapIntensity: 0.0, // No environment reflections
-          })
+          child.userData.hasOutsoleLeatherTexture = true // Using smooth leather texture
+        } else if (isInsoleMesh && outsoleLeatherMaterials) {
+          // Use red leather texture for insole (same texture that was used for outsole)
+          const insoleLeatherMat = outsoleLeatherMaterials.clone()
           
-          // Ensure no textures are applied
-          insoleMat.map = null
-          insoleMat.normalMap = null
-          insoleMat.roughnessMap = null
-          insoleMat.metalnessMap = null
-          insoleMat.aoMap = null
-          insoleMat.emissiveMap = null
+          // Ensure all texture maps are properly set
+          if (insoleLeatherMat.map) insoleLeatherMat.map.needsUpdate = true
+          if (insoleLeatherMat.normalMap) {
+            insoleLeatherMat.normalMap.needsUpdate = true
+            insoleLeatherMat.normalScale = insoleLeatherMat.normalScale || { x: 1, y: 1 }
+          }
+          if (insoleLeatherMat.roughnessMap) {
+            insoleLeatherMat.roughnessMap.needsUpdate = true
+          }
+          if (insoleLeatherMat.metalnessMap) {
+            insoleLeatherMat.metalnessMap.needsUpdate = true
+          }
+          if (insoleLeatherMat.aoMap) {
+            insoleLeatherMat.aoMap.needsUpdate = true
+          }
           
-          insoleMat.needsUpdate = true
+          insoleLeatherMat.side = DoubleSide
+          insoleLeatherMat.needsUpdate = true
           
-          child.material = insoleMat
+          // Convert to MeshPhysicalMaterial for better leather properties
+          let finalInsoleLeatherMat = insoleLeatherMat
+          
+          if (insoleLeatherMat.isMeshStandardMaterial) {
+            // Create a new MeshPhysicalMaterial with all texture maps from the original
+            const physicalInsoleMat = new MeshPhysicalMaterial({
+              color: insoleLeatherMat.color,
+              map: insoleLeatherMat.map,
+              normalMap: insoleLeatherMat.normalMap,
+              normalScale: insoleLeatherMat.normalScale || { x: 1, y: 1 },
+              roughnessMap: insoleLeatherMat.roughnessMap,
+              metalnessMap: insoleLeatherMat.metalnessMap,
+              aoMap: insoleLeatherMat.aoMap,
+              emissiveMap: insoleLeatherMat.emissiveMap,
+              side: DoubleSide,
+              // Insole leather properties - matte leather appearance
+              metalness: 0.0, // No metalness for matte leather
+              roughness: 0.85, // High roughness for matte, textured leather
+              sheen: 0.2, // Subtle sheen for natural leather
+              sheenRoughness: 0.5, // Rough sheen
+              clearcoat: 0.0, // No clearcoat for matte
+              clearcoatRoughness: 1.0,
+              envMapIntensity: 0.3, // Low environment reflections for matte
+            })
+            
+            // Dispose old material
+            insoleLeatherMat.dispose()
+            finalInsoleLeatherMat = physicalInsoleMat
+          } else if (insoleLeatherMat.isMeshPhysicalMaterial) {
+            // For physical materials, set matte leather properties
+            insoleLeatherMat.metalness = 0.0
+            insoleLeatherMat.roughness = 0.85
+            insoleLeatherMat.sheen = 0.2
+            insoleLeatherMat.sheenRoughness = 0.5
+            insoleLeatherMat.clearcoat = 0.0
+            insoleLeatherMat.clearcoatRoughness = 1.0
+            insoleLeatherMat.envMapIntensity = 0.3
+          }
+          
+          child.material = finalInsoleLeatherMat
           child.userData.isInsoleMesh = true
+          child.userData.hasInsoleLeatherTexture = true // Using red leather texture
         } else if (defaultMaterialProps && defaultMaterialProps.useWoodTexture && woodMaterials) {
           // Clone the wood material from GLTF for wood meshes with all texture maps
           const woodMat = woodMaterials.clone()
@@ -1538,8 +1637,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
               specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
               envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
-              opacity: 0.85, // A little transparent when viewing from center
-              transparent: true, // Enable transparency
+              opacity: 1.0, // Solid - fully opaque
+              transparent: false, // Solid gems - no transparency
             }
           } else if (mapping.feature === 'Cascade') {
             // Cascade - solid gems with internal geometry reflections and rainbow chromatic dispersion
@@ -1612,6 +1711,46 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               opacity: 1.0, // Solid - not transparent
               transparent: false, // Solid crown gems
             }
+          } else if (mapping.feature === 'Beads') {
+            // Beads - diamond material with rainbow internal reflections
+            colorHex = getColorHex(colorToApplyForMesh) || '#FAFAF8' // Default to diamond/colorless
+            materialProps = {
+              metalness: 0.0,
+              roughness: 0.0,
+              usePhysicalMaterial: true,
+              transmission: 0.95, // Very high transmission for maximum internal reflections and sparkles
+              thickness: 5.0, // Increased thickness for more internal light bouncing and rainbow sparkles
+              ior: 2.42, // Diamond IOR - high IOR creates strong internal reflections and dispersion
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
+              sheen: 0.5,
+              sheenRoughness: 0.1,
+              specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
+              specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
+              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              opacity: 1.0, // Solid - fully opaque
+              transparent: false, // Solid - no transparency
+            }
+          } else if (mapping.feature === 'Glass') {
+            // Glass - realistic glass material with transparency and reflections
+            colorHex = getColorHex(colorToApplyForMesh) || '#FFFFFF' // Default to clear/white
+            materialProps = {
+              metalness: 0.0,
+              roughness: 0.0, // Smooth glass surface
+              usePhysicalMaterial: true,
+              transmission: 0.98, // Very high transmission for glass transparency
+              thickness: 0.5, // Thin glass thickness
+              ior: 1.5, // Glass IOR (typical glass is around 1.5)
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.0, // Perfectly smooth glass surface
+              sheen: 0.0,
+              sheenRoughness: 1.0,
+              specularIntensity: 0.5, // Moderate specular for glass reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular for glass
+              envMapIntensity: 1.2, // Higher environment reflections for glass
+              opacity: 0.9, // Slightly transparent for glass effect
+              transparent: true, // Enable transparency for glass
+            }
           } else if (mapping.feature === 'Sole/Strap') {
             // Determine if this is outsole (reflective/patent leather) or insole (matte leather)
             const isOutsole = mapping.category === 'Outsole/Outstrap'
@@ -1632,7 +1771,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 envMapIntensity: 1.2, // Increased environment map intensity for more reflections and shine
               }
             } else {
-              // Insole - simple matte solid material (no textures)
+              // Insole - use red leather texture (same as outsole texture)
               if (child.userData.isInsoleMesh) {
               materialProps = {
                   metalness: 0.0, // Not metallic
@@ -1785,34 +1924,78 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             }
           }
           
-          // Handle insole - simple matte solid material (no textures)
-          if (child.userData.isInsoleMesh) {
-            // Recreate material as simple matte solid (remove all textures)
-            const insoleMat = new MeshStandardMaterial({
-              color: new Color(colorHex),
-              side: DoubleSide,
-              // Completely matte appearance - no shine, no reflections
-              metalness: 0.0, // Not metallic
-              roughness: 1.0, // Maximum roughness for completely matte finish
-              envMap: null, // No environment map
-              envMapIntensity: 0.0, // No environment reflections
-            })
+          // Handle insole - use red leather texture (same as outsole texture)
+          if (child.userData.isInsoleMesh && outsoleLeatherMaterials) {
+            // Use red leather texture for insole
+            const insoleLeatherMat = outsoleLeatherMaterials.clone()
             
-            // Ensure no textures are applied
-            insoleMat.map = null
-            insoleMat.normalMap = null
-            insoleMat.roughnessMap = null
-            insoleMat.metalnessMap = null
-            insoleMat.aoMap = null
-            insoleMat.emissiveMap = null
+            // Ensure all texture maps are properly set
+            if (insoleLeatherMat.map) insoleLeatherMat.map.needsUpdate = true
+            if (insoleLeatherMat.normalMap) {
+              insoleLeatherMat.normalMap.needsUpdate = true
+              insoleLeatherMat.normalScale = insoleLeatherMat.normalScale || { x: 1, y: 1 }
+            }
+            if (insoleLeatherMat.roughnessMap) {
+              insoleLeatherMat.roughnessMap.needsUpdate = true
+            }
+            if (insoleLeatherMat.metalnessMap) {
+              insoleLeatherMat.metalnessMap.needsUpdate = true
+            }
+            if (insoleLeatherMat.aoMap) {
+              insoleLeatherMat.aoMap.needsUpdate = true
+            }
+            
+            insoleLeatherMat.side = DoubleSide
+            insoleLeatherMat.needsUpdate = true
+            
+            // Convert to MeshPhysicalMaterial for better leather properties
+            let finalInsoleLeatherMat = insoleLeatherMat
+            
+            if (insoleLeatherMat.isMeshStandardMaterial) {
+              // Create a new MeshPhysicalMaterial with all texture maps
+              const physicalInsoleMat = new MeshPhysicalMaterial({
+                color: new Color(colorHex),
+                map: insoleLeatherMat.map,
+                normalMap: insoleLeatherMat.normalMap,
+                normalScale: insoleLeatherMat.normalScale || { x: 1, y: 1 },
+                roughnessMap: insoleLeatherMat.roughnessMap,
+                metalnessMap: insoleLeatherMat.metalnessMap,
+                aoMap: insoleLeatherMat.aoMap,
+                emissiveMap: insoleLeatherMat.emissiveMap,
+                side: DoubleSide,
+                // Insole leather properties - matte leather appearance
+                metalness: 0.0, // No metalness for matte leather
+                roughness: 0.85, // High roughness for matte, textured leather
+                sheen: 0.2, // Subtle sheen for natural leather
+                sheenRoughness: 0.5, // Rough sheen
+                clearcoat: 0.0, // No clearcoat for matte
+                clearcoatRoughness: 1.0,
+                envMapIntensity: 0.3, // Low environment reflections for matte
+              })
+              
+              // Dispose old material
+              insoleLeatherMat.dispose()
+              finalInsoleLeatherMat = physicalInsoleMat
+            } else if (insoleLeatherMat.isMeshPhysicalMaterial) {
+              // For physical materials, set matte leather properties
+              insoleLeatherMat.color = new Color(colorHex)
+              insoleLeatherMat.metalness = 0.0
+              insoleLeatherMat.roughness = 0.85
+              insoleLeatherMat.sheen = 0.2
+              insoleLeatherMat.sheenRoughness = 0.5
+              insoleLeatherMat.clearcoat = 0.0
+              insoleLeatherMat.clearcoatRoughness = 1.0
+              insoleLeatherMat.envMapIntensity = 0.3
+            }
             
             // Dispose old material if it exists
             if (child.material) {
               child.material.dispose()
             }
             
-            child.material = insoleMat
+            child.material = finalInsoleLeatherMat
             child.material.needsUpdate = true
+            child.userData.hasInsoleLeatherTexture = true // Using red leather texture
             return // Skip further material processing
           } else if (materialProps.preserveTexture && child.userData.isWoodMesh && (woodMaterials || child.userData.hasWoodTexture)) {
             // Material already has wood textures, set to solid black
@@ -2053,75 +2236,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     metalTextures, // Include metalTextures so updates work when textures load
   ])
   
-  // Adjust gem opacity based on viewing angle - opaque when viewing from side
-  const { camera } = useThree()
-  useFrame(() => {
-    if (!clonedScene || !camera) return
-    
-    clonedScene.traverse((child) => {
-      if (child.isMesh && child.material) {
-        // Check if this is a gem mesh (Gems, Cascade, or Crown)
-        const meshName = child.name.toLowerCase()
-        const isGemMesh = meshName.includes('gem') || 
-                         meshName.includes('cascade') || 
-                         meshName.includes('crown') ||
-                         (child.userData && (child.userData.isGemMesh || child.userData.isCascadeMesh || child.userData.isCrownMesh))
-        
-        // Check if this is Cascade - it should always be solid
-        const isCascadeMesh = meshName.includes('cascade') || (child.userData && child.userData.isCascadeMesh)
-        
-        // Ensure Cascade is always solid
-        if (isCascadeMesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material]
-          materials.forEach((mat) => {
-            if (mat.isMeshPhysicalMaterial) {
-              mat.opacity = 1.0
-              mat.transparent = false
-            }
-          })
-        }
-        
-        // Adjust opacity for Gems and Crown based on viewing angle
-        if (isGemMesh && !isCascadeMesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material]
-          
-          materials.forEach((mat) => {
-            if (mat.isMeshPhysicalMaterial) {
-              // Get mesh world position
-              const meshWorldPos = new Vector3()
-              child.getWorldPosition(meshWorldPos)
-              
-              // Calculate vector from mesh to camera
-              const cameraToMesh = new Vector3()
-              cameraToMesh.subVectors(meshWorldPos, camera.position).normalize()
-              
-              // Calculate camera forward direction
-              const cameraForward = new Vector3()
-              camera.getWorldDirection(cameraForward)
-              
-              // Calculate viewing angle: how directly we're facing the gem
-              // Dot product between camera forward and direction to mesh
-              // High value (close to 1) = viewing from center/front
-              // Low value (close to 0) = viewing from side
-              const viewingAngle = Math.abs(cameraForward.dot(cameraToMesh))
-              
-              // If viewing from center/front (high angle > 0.5), make a little transparent
-              // If viewing from sides (low angle <= 0.5), make opaque
-              if (viewingAngle > 0.5) {
-                // Viewing from center/front - a little transparent
-                mat.opacity = 0.85
-                mat.transparent = true
-              } else {
-                // Viewing from sides - not transparent (opaque)
-                mat.opacity = 1.0
-                mat.transparent = false
-              }
-            }
-          })
-        }
-      }
-    })
-  })
+  // Gems are now always solid - no transparency based on viewing angle
   
   if (!clonedScene) return null
   
@@ -2136,7 +2251,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
 }
 
 // Preload the model (commented out to allow progress tracking)
-// const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe26-v1.glb'
+// const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
 // useGLTF.preload(modelPath)
 
 // Brown leather textures are loaded directly via useBrownLeatherTextures hook
@@ -2171,10 +2286,10 @@ function LoadingProgress() {
 function StudioEnvironment() {
   return (
     <Environment
-      files="https://tccvstp4hk6dkzop.public.blob.vercel-storage.com/assets/enviroments/Jewelry-HDRI-black-contrast-61d08Q2c3MSdFxUpryeXmDrZhEhWip.hdr"
+      files="/assets/enviroments/studio_small_01_4k.hdr"
       background={false}
       rotation={[0, Math.PI / 4, 0]}
-      intensity={0.05}
+      intensity={1.5}
     />
   )
 }
@@ -2230,7 +2345,7 @@ function GlassTable() {
 // Reflected shoe component - creates a shadow reflection below the model
 function ReflectedShoe({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {}, mainModelScene = null }) {
   // Use environment variable for model URL, fallback to local model file
-  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe26-v1.glb'
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
   const { scene } = useGLTF(modelPath)
   
   // Use main model scene if provided, otherwise use loaded scene
@@ -2551,72 +2666,69 @@ function Canvas({ configState = {} }) {
               {/* Studio environment from HDR file */}
               <StudioEnvironment />
               
-              {/* Professional studio lighting setup - optimized for reflections */}
+              {/* Professional studio lighting setup - 8 directional lights for full coverage */}
               
-              {/* Key light - main light source (from above, focused on gems) - high priority */}
+              {/* Ground light - from below, pointing up */}
               <directionalLight 
-                position={[0, 20, 0]} 
-                intensity={1.5} 
+                position={[0, -10, 0]} 
+                intensity={2.5} 
                 castShadow
               />
               
-              {/* Fill light - from opposite side and above - high priority */}
+              {/* Side lights - 4 lights from sides */}
               <directionalLight 
-                position={[-5, 15, 5]} 
-                intensity={1.2}
+                position={[-20, 0, 0]} 
+                intensity={2.0}
+              />
+              <directionalLight 
+                position={[20, 0, 0]} 
+                intensity={2.0}
+              />
+              <directionalLight 
+                position={[0, 0, 20]} 
+                intensity={2.0}
+              />
+              <directionalLight 
+                position={[0, 0, -20]} 
+                intensity={2.0}
               />
               
-              {/* Top light - directly overhead for better reflections on gems - high priority */}
+              {/* Diagonal side lights - 2 lights from front corners */}
+              <directionalLight 
+                position={[-15, 0, 15]} 
+                intensity={2.0}
+              />
+              <directionalLight 
+                position={[15, 0, 15]} 
+                intensity={2.0}
+              />
+              
+              {/* Top light - from above */}
               <directionalLight 
                 position={[0, 25, 0]} 
-                intensity={1.4}
+                intensity={2.4}
               />
               
-              {/* Front light - illuminates front of model and gems - high priority */}
-              <directionalLight 
-                position={[0, 10, 15]} 
-                intensity={1.2}
-              />
+              {/* Soft ambient fill for overall illumination */}
+              <ambientLight intensity={0.8} />
               
-              {/* Side lights for even illumination, positioned to light gems - high priority */}
-              <pointLight 
-                position={[15, 10, 0]} 
-                intensity={1.2}
-                distance={50}
-              />
-              <pointLight 
-                position={[-15, 10, 0]} 
-                intensity={1.2}
-                distance={50}
-              />
-              
-              {/* Additional light focused on gem area - high priority */}
-              <pointLight 
-                position={[0, 5, 0]} 
-                intensity={1.0}
-                distance={40}
-              />
-              
-              {/* Soft ambient fill for overall illumination - increased for even lighting */}
-              <ambientLight intensity={0.5} />
-              
-              {/* Hemisphere light - reduced contrast */}
+              {/* Hemisphere light - more ground light */}
               <hemisphereLight 
-                skyColor={0xffffff}
-                groundColor={0x666666}
-                intensity={0.15}
+                skyColor={0x888888}
+                groundColor={0xffffff}
+                intensity={0.3}
               />
               
               <ShoeModel 
                 position={[0, -200, 0]} 
-                scale={30.0}
+                scale={2400.0}
                 rotation={[0, 2, 0]}
                 configState={configState}
               />
               {showReflection && (
                 <ReflectedShoe 
                   position={[0, -200, 0]} 
-                  scale={30.0}
+                  scale={2400.0}
                   rotation={[0, 2, 0]}
                   configState={configState}
                 />
