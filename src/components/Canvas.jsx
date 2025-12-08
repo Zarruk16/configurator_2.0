@@ -407,7 +407,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   const { scene: woodTextureScene } = useGLTF(woodTexturePath)
   
   // Load leather texture GLTF for outsole
-  const outsoleLeatherTexturePath = '/assets/textures/leather_red_02_4k.gltf/leather_red_02_4k.gltf'
+  const outsoleLeatherTexturePath = '/assets/textures/leather_red_03_4k.gltf/leather_red_03_4k.gltf'
   const { scene: outsoleLeatherTextureScene } = useGLTF(outsoleLeatherTexturePath)
   
   // Metal textures disabled for now - was causing issues
