@@ -2645,7 +2645,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
         return [] // No categories, show colors directly
       // Form categories
       case 'Sole/Strap':
-        return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel']
+        return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
       case 'Heel':
         return [] // No categories for Heel, show materials directly
       // Legacy Form & Fit categories (kept for backward compatibility if needed)
@@ -2708,7 +2708,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
         case 'Cascade':
           return [] // No categories, show colors directly
         case 'Sole/Strap':
-          return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel']
+          return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
         case 'Heel':
           return [] // No categories for Heel
         case 'Material & Structure':
@@ -2955,10 +2955,10 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
               setHasMoreContent(hasScroll && !isAtBottom)
             }}
           >
-            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel' || activeFeature === 'Crown' || activeFeature === 'Cascade')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory))) ? 'color-grid' : ''}`}>
+            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel' || activeFeature === 'Crown' || activeFeature === 'Cascade')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory))) ? 'color-grid' : ''}`}>
               {(() => {
                 const content = getCategoryContent(activeFeature === 'Color' ? 'Color' : (activeFeature === 'Heel' ? 'Heel' : (activeFeature === 'Crown' ? 'Crown' : (activeFeature === 'Cascade' ? 'Cascade' : (activeFeature === 'Gems' && shouldShowColors() ? 'Gems' : activeCategory)))))
-                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory)) || activeFeature === 'Crown' || activeFeature === 'Cascade') && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
+                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory)) || activeFeature === 'Crown' || activeFeature === 'Cascade') && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
                 const organizedContent = isColorContent ? organizeColorsByFamily(content) : content
                 return organizedContent
               })().map((item, index) => {
@@ -2968,7 +2968,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
                 const isGem = activeFeature === 'Gems' && ['Precious', 'Semi-Precious', 'Organic Gems', 'Man-Made', 'Extended Natural'].includes(activeCategory)
                 const isSpecialEffect = activeFeature === 'Gems' && activeCategory === 'Special Effects'
                 const gemImagePath = (isGem || isSpecialEffect) ? getGemImagePath(itemName) : null
-                const isSoleStrap = activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory)
+                const isSoleStrap = activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory)
                 // Special Effects and Colour Families should display as regular cards, not color swatches
                 const isSpecialCategory = activeCategory === 'Special Effects' || activeCategory === 'Colour Families' || activeCategory === 'Textures'
                 const isColorDisplay = (shouldShowColors() || isSoleStrap) && !isSpecialCategory
