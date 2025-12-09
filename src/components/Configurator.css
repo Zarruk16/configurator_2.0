@@ -19,19 +19,38 @@
   width: 2px;
   background: linear-gradient(to bottom, 
     rgba(83, 62, 23, 0) 0%, 
-    rgba(83, 62, 23, 0.4) 10%,
-    #533e17 20%, 
-    #533e17 25%,
-    rgba(255, 254, 136, 0.8) 30%,
-    #fffe88 35%, 
-    #fffe88 65%,
-    rgba(255, 254, 136, 0.8) 70%,
+    rgba(83, 62, 23, 0.2) 5%,
+    rgba(83, 62, 23, 0.4) 12%,
+    rgba(83, 62, 23, 0.5) 18%,
+    #533e17 25%, 
+    #533e17 30%,
+    rgba(255, 254, 136, 0.6) 35%,
+    rgba(255, 254, 136, 0.8) 40%,
+    #fffe88 45%, 
+    #fffe88 55%,
+    rgba(255, 254, 136, 0.8) 60%,
+    rgba(255, 254, 136, 0.6) 65%,
+    #533e17 70%,
     #533e17 75%,
-    #533e17 80%,
-    rgba(83, 62, 23, 0.4) 90%,
+    rgba(83, 62, 23, 0.5) 82%,
+    rgba(83, 62, 23, 0.4) 88%,
+    rgba(83, 62, 23, 0.2) 95%,
+    rgba(83, 62, 23, 0) 100%,
     rgba(83, 62, 23, 0) 100%);
+  background-size: 100% 200%;
+  background-repeat: repeat-y;
   z-index: 10;
   pointer-events: none;
+  animation: gradientFlowRound 6s linear infinite;
+}
+
+@keyframes gradientFlowRound {
+  0% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 50% 200%;
+  }
 }
 
 

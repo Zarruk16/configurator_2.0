@@ -28,12 +28,14 @@ dist-ssr
 assets/*.fbx
 assets/*.glb
 public/assets/*.fbx
-# Allow the new model file to be tracked
-!public/assets/shoe27-v1.glb
+# Allow specific model files to be tracked (under 100MB)
+!public/assets/shoe28-v1.glb
 public/assets/**/*.exr
 # Allow the studio environment HDR file (must come before the general pattern)
-!public/assets/enviroments/studio_small_04_4k.hdr
+!public/assets/enviroments/studio_small_01_4k.hdr
 public/assets/enviroments/*.hdr
-# Allow smaller model files (under 100MB) - but use blob storage for deployment
+# Explicitly ignore large files
+public/assets/shoe2.8.glb
+public/assets/render.glb
 
 

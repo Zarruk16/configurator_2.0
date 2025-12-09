@@ -303,6 +303,9 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
   const categoriesPerView = 4 // Number of categories to show at once
   const [hasMoreContent, setHasMoreContent] = useState(false)
   const contentGridRef = useRef(null)
+  const filterTabsRef = useRef(null)
+  const activeTabRef = useRef(null)
+  const gradientLineRef = useRef(null)
   
   // Track selected colors per feature to persist across tab/feature switches
   const featureColorsRef = useRef({}) // Format: { 'feature:category': { colorName, gridItem } }
@@ -525,7 +528,137 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
 
   // Get gem image URL - uses real images from local assets folder
   const getGemImagePath = (gemName) => {
-    // Map gem names to folder names in the train directory
+    // Map gem names directly to their file names in the nobg folder
+    // Based on actual files in /public/assets/images/nobg/
+    const gemFileMap = {
+      // Precious gems
+      'Diamond': 'diamond_6',
+      'Emerald': 'emerald_40',
+      'Sapphire': 'sapphire blue_10',
+      'Sapphire Blue': 'sapphire blue_10',
+      'Sapphire Pink': 'sapphire pink_30',
+      'Sapphire Purple': 'sapphire purple_0',
+      'Sapphire Yellow': 'sapphire yellow_32',
+      'Blue Sapphire': 'sapphire blue_10',
+      'Pink Sapphire': 'sapphire pink_30',
+      'Purple Sapphire': 'sapphire purple_0',
+      'Yellow Sapphire': 'sapphire yellow_32',
+      'Alexandrite': 'alexandrite_31',
+      'Benitoite': 'benitoite_16',
+      'Jadeite': 'jade_0',
+      'Jade': 'jade_0',
+      'Paraiba Tourmaline': 'tourmaline_12',
+      'Red Spinel': 'spinel_19',
+      'Spinel': 'spinel_19',
+      // Semi-Precious
+      'Agate': 'blue lace agate_8',
+      'Blue Lace Agate': 'blue lace agate_8',
+      'Amazonite': 'amazonite_25',
+      'Amethyst': 'amethyst_24',
+      'Ametrine': 'ametrine_12',
+      'Apatite': 'aquamarine_16',
+      'Aquamarine': 'aquamarine_16',
+      'Aventurine': 'aventurine green_19',
+      'Aventurine Green': 'aventurine green_19',
+      'Aventurine Yellow': 'aventurine yellow_10',
+      'Carnelian': 'carnelian_2',
+      'Chalcedony': 'chalcedony_5',
+      'Chalcedony Blue': 'chalcedony blue_23',
+      'Chrysoprase': 'chrysoprase_1',
+      'Citrine': 'citrine_36',
+      'Garnet': 'garnet red_10',
+      'Garnet Red': 'garnet red_10',
+      'Goshenite': 'goshenite_22',
+      'Heliodor': 'beryl golden_34',
+      'Beryl Golden': 'beryl golden_34',
+      'Beryl': 'beryl',
+      'Iolite': 'iolite_7',
+      'Jasper': 'jasper_38',
+      'Kyanite': 'kyanite_2',
+      'Labradorite': 'labradorite_5',
+      'Lapis Lazuli': 'lapis lazuli_22',
+      'Larimar': 'larimar_18',
+      'Malachite': 'malachite_23',
+      'Moonstone': 'moonstone_7',
+      'Rainbow Moonstone': 'moonstone_7',
+      'Morganite': 'morganite_30',
+      'Onyx': 'onyx black_27',
+      'Onyx Black': 'onyx black_27',
+      'Onyx Green': 'onyx green_22',
+      'Peridot': 'peridot_37',
+      'Prehnite': 'prehnite_12',
+      'Rhodochrosite': 'rhodochrosite_0',
+      'Rhodolite': 'rhodolite_5',
+      'Rhodonite': 'rhodonite_1',
+      'Serpentine': 'serpentine_6',
+      'Smoky Quartz': 'quartz smoky_14',
+      'Quartz': 'quartz beer_2',
+      'Quartz Beer': 'quartz beer_2',
+      'Quartz Lemon': 'quartz lemon_2',
+      'Quartz Rutilated': 'quartz rutilated_1',
+      'Quartz Smoky': 'quartz smoky_14',
+      'Sodalite': 'sodalite_27',
+      'Spessartite': 'spessartite_12',
+      'Tanzanite': 'tanzanite_18',
+      'Tiger\'s Eye': 'tigers eye_12',
+      'Tigers Eye': 'tigers eye_12',
+      'Topaz': 'topaz_35',
+      'Tourmaline': 'tourmaline_12',
+      'Turquoise': 'turquoise_12',
+      'Zircon': 'zircon_6',
+      'Tsavorite': 'tsavorite_34',
+      'Dumortierite': 'dumortierite_7',
+      // Extended Natural
+      'Almandine': 'almandine_1',
+      'Andalusite': 'andalusite_6',
+      'Andradite': 'andradite_22',
+      'Bixbite': 'bixbite_33',
+      'Chrome Diopside': 'chrome diopside_10',
+      'Chrysoberyl': 'chrysoberyl_7',
+      'Danburite': 'danburite_21',
+      'Diaspore': 'diaspore_0',
+      'Diaspore (Zultanite)': 'diaspore_0',
+      'Hiddenite': 'hiddenite_20',
+      'Kunzite': 'kunzite_12',
+      'Pyrope': 'pyrope_33',
+      'Scapolite': 'scapolite_0',
+      'Sphene': 'sphene_14',
+      'Spodumene': 'spodumene_36',
+      'Brookite': 'brookite',
+      'Ekanite': 'ekanite',
+      'Kornerupine': 'kornerupine',
+      'Kudite': 'kudite',
+      'Pectolite': 'pectolite',
+      // Additional gems - try common patterns
+      'Opal': 'opal',
+      'Ruby': 'ruby',
+      'Pyrite': 'pyrite',
+      'Sunstone': 'sunstone',
+      'Rose Quartz': 'quartz rose',
+      'Quartz Rose': 'quartz rose',
+      'Bloodstone': 'bloodstone',
+      'Fluorite': 'fluorite',
+      'Obsidian': 'obsidian',
+      'Onyx Red': 'onyx red',
+      'Unakite': 'unakite',
+      'Amber': 'amber',
+      'Coral': 'coral',
+      'Pearl': 'pearl',
+      'Mother-of-Pearl': 'pearl',
+      'Mother of Pearl': 'pearl',
+    }
+    
+    // Check if we have a direct file mapping first
+    if (gemFileMap[gemName]) {
+      const fileName = gemFileMap[gemName]
+      // If fileName doesn't end with a number, it's a file without number suffix
+      if (!fileName.match(/\d+$/)) {
+        return `/assets/images/nobg/${fileName}.png`
+      }
+      return `/assets/images/nobg/${fileName}.png`
+    }
+    
+    // Map gem names to folder names in the train directory (fallback for unmapped gems)
     // Handle special cases where folder names differ from gem names
     const gemFolderMap = {
       // Precious gems
@@ -702,24 +835,24 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
     // Get folder name, fallback to gem name if not mapped
     let folderName = gemFolderMap[gemName]
     
-    // Special case: Mother-of-Pearl uses pearl_9.jpg specifically
+    // Special case: Mother-of-Pearl uses pearl_9.png specifically
     if (gemName === 'Mother-of-Pearl' || gemName === 'Mother of Pearl') {
-      return `/assets/images/archive/train/Pearl/pearl_9.jpg`
+      return `/assets/images/nobg/pearl_9.png`
     }
     
-    // Special case: Apatite uses aquamarine_35.jpg specifically
+    // Special case: Apatite uses aquamarine_35.png specifically
     if (gemName === 'Apatite') {
-      return `/assets/images/archive/train/Aquamarine/aquamarine_35.jpg`
+      return `/assets/images/nobg/aquamarine_35.png`
     }
     
-    // Special case: Tortoiseshell uses zoisite_16.jpg specifically
+    // Special case: Tortoiseshell uses zoisite_16.png specifically
     if (gemName === 'Tortoiseshell') {
-      return `/assets/images/archive/train/Zoisite/zoisite_16.jpg`
+      return `/assets/images/nobg/zoisite_16.png`
     }
     
-    // Special case: Tagua Nut uses zoisite_1.jpg specifically
+    // Special case: Tagua Nut uses zoisite_1.png specifically
     if (gemName === 'Tagua Nut') {
-      return `/assets/images/archive/train/Zoisite/zoisite_1.jpg`
+      return `/assets/images/nobg/zoisite_1.png`
     }
     
     // If not found in map, try to match folder name directly (case-insensitive)
@@ -876,37 +1009,29 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       'Iridescent': 'iredescent.jpeg' // Note: typo in filename - this is a root .jpeg file
     }
     
-    // Check for root-level .jpeg files first
+    // Check for root-level .jpeg files first - try to find equivalent in nobg folder
     if (rootJpegGems[gemName]) {
-      return `/assets/images/archive/train/${rootJpegGems[gemName]}`
+      // Convert gem name to lowercase with spaces preserved for nobg folder
+      const gemNameLower = gemName.toLowerCase()
+      // Try index 0 first, as most gems seem to have _0 or _1
+      return `/assets/images/nobg/${gemNameLower}_0.png`
     }
     
     if (jpegGems[gemName]) {
       const folder = jpegGems[gemName]
-      // Handle special case for Hematite (typo in filename: hemetite.jpeg)
-      if (gemName === 'Hematite') {
-        return `/assets/images/archive/train/${folder}/hemetite.jpeg`
-      }
-      // Handle special case for Bog Oak (filename: bog_oak.jpeg)
-      if (gemName === 'Bog Oak') {
-        return `/assets/images/archive/train/${folder}/bog_oak.jpeg`
-      }
-      // Handle special case for Fossilized Wood (filename: fossilized_wood.jpeg)
-      if (gemName === 'Fossilized Wood') {
-        return `/assets/images/archive/train/${folder}/fossilized_wood.jpeg`
-      }
-      // Default: use gem name in lowercase with .jpeg
-      const gemNameLower = gemName.toLowerCase().replace(/\s+/g, '_')
-      return `/assets/images/archive/train/${folder}/${gemNameLower}.jpeg`
+      // Convert to nobg folder format - use folder name directly, preserve spaces/underscores
+      const gemNameLower = folder.toLowerCase()
+      // Try index 0 first, as most gems seem to have _0 or _1
+      return `/assets/images/nobg/${gemNameLower}_0.png`
     }
     
     // Get image index for Man-Made gems, default to 0 for natural gems
     const imageIndex = manMadeImageIndices[gemName] !== undefined ? manMadeImageIndices[gemName] : 0
     
-    // Use the specified image index from the folder
-    // Format: /assets/images/archive/train/{folderName}/{gemName}_{index}.jpg
+    // Use the specified image index from the nobg folder
+    // Format: /assets/images/nobg/{gemName}_{index}.png
     const gemNameLower = folderName.toLowerCase()
-    return `/assets/images/archive/train/${folderName}/${gemNameLower}_${imageIndex}.jpg`
+    return `/assets/images/nobg/${gemNameLower}_${imageIndex}.png`
   }
   
   // Get alternative image URLs for fallback - try different image indices from the same folder
@@ -967,10 +1092,14 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
     
     // Try different image indices (1, 2, 3, etc.) as fallbacks
     return [
-      `/assets/images/archive/train/${folderName}/${gemNameLower}_1.jpg`,
-      `/assets/images/archive/train/${folderName}/${gemNameLower}_2.jpg`,
-      `/assets/images/archive/train/${folderName}/${gemNameLower}_3.jpg`,
-      `/assets/images/archive/train/${folderName}/${gemNameLower}_4.jpg`,
+      `/assets/images/nobg/${gemNameLower}_0.png`,
+      `/assets/images/nobg/${gemNameLower}_1.png`,
+      `/assets/images/nobg/${gemNameLower}_2.png`,
+      `/assets/images/nobg/${gemNameLower}_3.png`,
+      `/assets/images/nobg/${gemNameLower}_4.png`,
+      `/assets/images/nobg/${gemNameLower}.png`, // Some files don't have numbers
+      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}.png`, // Try with underscores
+      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}_0.png`, // Try with underscores and number
       `https://via.placeholder.com/400/533e17/fffe88?text=${encodeURIComponent(gemName.substring(0, 10))}` // Final placeholder fallback
     ]
   }
@@ -1840,6 +1969,76 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
     previousCategoryRef.current = activeCategory
   }, [activeFeature, activeCategory])
   
+  // Position gradient line under active filter tab
+  useEffect(() => {
+    const updateGradientPosition = () => {
+      if (activeTabRef.current && gradientLineRef.current && filterTabsRef.current) {
+        const activeTab = activeTabRef.current
+        const gradientLine = gradientLineRef.current
+        const filterTabs = filterTabsRef.current
+        const filterTabsContent = filterTabs.querySelector('.filter-tabs-content')
+        
+        // Scroll active tab into view if needed (only if it's not fully visible)
+        if (filterTabsContent) {
+          const tabRect = activeTab.getBoundingClientRect()
+          const containerRect = filterTabsContent.getBoundingClientRect()
+          const isFullyVisible = tabRect.left >= containerRect.left && tabRect.right <= containerRect.right
+          
+          if (!isFullyVisible) {
+            activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+          }
+        }
+        
+        // Calculate position after ensuring tab is in view
+        const calculatePosition = () => {
+          const activeTabRect = activeTab.getBoundingClientRect()
+          const filterTabsRect = filterTabs.getBoundingClientRect()
+          
+          const left = activeTabRect.left - filterTabsRect.left + activeTabRect.width / 2
+          const width = activeTabRect.width * 0.5 + 10
+          
+          gradientLine.style.left = `${left}px`
+          gradientLine.style.width = `${width}px`
+          gradientLine.style.transform = 'translateX(-50%)'
+          gradientLine.style.display = 'block'
+        }
+        
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+          requestAnimationFrame(calculatePosition)
+        })
+      } else if (gradientLineRef.current) {
+        // Hide gradient line if no active tab
+        gradientLineRef.current.style.display = 'none'
+      }
+    }
+    
+    // Update immediately
+    updateGradientPosition()
+    
+    // Also update after delays to handle scroll animations
+    const timeoutId1 = setTimeout(updateGradientPosition, 50)
+    const timeoutId2 = setTimeout(updateGradientPosition, 300)
+    
+    // Listen for scroll events on the filter-tabs-content to update position
+    const filterTabsContent = filterTabsRef.current?.querySelector('.filter-tabs-content')
+    if (filterTabsContent) {
+      filterTabsContent.addEventListener('scroll', updateGradientPosition, { passive: true })
+    }
+    
+    // Listen for window resize
+    window.addEventListener('resize', updateGradientPosition)
+    
+    return () => {
+      clearTimeout(timeoutId1)
+      clearTimeout(timeoutId2)
+      if (filterTabsContent) {
+        filterTabsContent.removeEventListener('scroll', updateGradientPosition)
+      }
+      window.removeEventListener('resize', updateGradientPosition)
+    }
+  }, [activeCategory, activeFeature, categoryStartIndex])
+  
   // Sync selectedGridItem with selectedGem and selectedColorName
   // Only sync when there's an explicit selection - don't auto-select anything
   // Use a ref to track if we should sync (to avoid conflicts with user clicks)
@@ -2370,6 +2569,13 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
           // Limited dark colors for insole/instrap
           'Black', 'Charcoal', 'Dark Brown', 'Navy', 'Burgundy', 'Grey', 'Brown'
         ]
+      case 'Outsole/Heel':
+        return [
+          // Metal colors for Outsole/Heel
+          'Gold', 'Silver', 'Bronze', 'Copper', 'Chrome', 'Platinum', 'Rose Gold', 'Brass', 'Gunmetal', 'Titanium', 'Nickel', 'Steel',
+          // Also include standard colors for variety
+          'Black', 'White', 'Grey', 'Charcoal', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Purple', 'Pink', 'Brown', 'Navy', 'Burgundy'
+        ]
       case 'Outsole/Outstrap':
         return [
           // Full comprehensive color palette for outsole
@@ -2439,7 +2645,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
         return [] // No categories, show colors directly
       // Form categories
       case 'Sole/Strap':
-        return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
+        return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel']
       case 'Heel':
         return [] // No categories for Heel, show materials directly
       // Legacy Form & Fit categories (kept for backward compatibility if needed)
@@ -2502,7 +2708,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
         case 'Cascade':
           return [] // No categories, show colors directly
         case 'Sole/Strap':
-          return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap']
+          return ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel']
         case 'Heel':
           return [] // No categories for Heel
         case 'Material & Structure':
@@ -2654,35 +2860,43 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       {/* Sub-Category Categories */}
       {activeFeature !== 'Color' && activeFeature !== 'Heel' && !(activeFeature === 'Gems' && shouldShowColors()) && (
         <div className="filters-section">
+          <div className="filter-tabs" ref={filterTabsRef}>
           {hasPreviousCategories && (
             <button 
-              className="filter-arrow-button filter-arrow-button-left"
+                className="filter-tabs-indicator filter-tabs-indicator-left"
               onClick={handleShowPreviousCategories}
+                title="Previous categories"
             >
-              <i className="fa-solid fa-chevron-left filter-arrow-icon"></i>
+                <i className="fa-solid fa-chevron-left"></i>
             </button>
           )}
-          <div className={`filters-container ${hasMoreCategories ? 'has-more' : ''} ${hasPreviousCategories ? 'has-prev' : ''}`}>
-            <div className="filters">
+            <div className="filter-tabs-content">
               {categories.map((category, index) => (
                 <button
                   key={category}
-                  className={`filter-button ${activeCategory === category ? 'active' : ''}`}
+                  ref={activeCategory === category ? activeTabRef : null}
+                  className={`filter-tab ${activeCategory === category ? 'active' : ''}`}
                   onClick={() => handleCategoryChange(category)}
+                  data-category={category}
                 >
                   {category}
                 </button>
               ))}
-            </div>
           </div>
           {hasMoreCategories && (
             <button 
-              className="filter-arrow-button filter-arrow-button-right"
+                className="filter-tabs-indicator filter-tabs-indicator-right"
               onClick={handleShowMoreCategories}
+                title="More categories"
             >
-              <i className="fa-solid fa-chevron-right filter-arrow-icon"></i>
+                <i className="fa-solid fa-chevron-right"></i>
             </button>
           )}
+          <div 
+            ref={gradientLineRef}
+            className="filter-tab-gradient-line"
+          />
+          </div>
         </div>
       )}
 
@@ -2741,10 +2955,10 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
               setHasMoreContent(hasScroll && !isAtBottom)
             }}
           >
-            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel' || activeFeature === 'Crown' || activeFeature === 'Cascade')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory))) ? 'color-grid' : ''}`}>
+            <div className={`content-grid ${((shouldShowColors() && (activeFeature === 'Gems' || activeFeature === 'Material & Structure' || activeFeature === 'Heel' || activeFeature === 'Crown' || activeFeature === 'Cascade')) || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory))) ? 'color-grid' : ''}`}>
               {(() => {
                 const content = getCategoryContent(activeFeature === 'Color' ? 'Color' : (activeFeature === 'Heel' ? 'Heel' : (activeFeature === 'Crown' ? 'Crown' : (activeFeature === 'Cascade' ? 'Cascade' : (activeFeature === 'Gems' && shouldShowColors() ? 'Gems' : activeCategory)))))
-                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory)) || activeFeature === 'Crown' || activeFeature === 'Cascade') && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
+                const isColorContent = (shouldShowColors() || (activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory)) || activeFeature === 'Crown' || activeFeature === 'Cascade') && activeCategory !== 'Special Effects' && activeCategory !== 'Colour Families' && activeCategory !== 'Textures'
                 const organizedContent = isColorContent ? organizeColorsByFamily(content) : content
                 return organizedContent
               })().map((item, index) => {
@@ -2754,7 +2968,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
                 const isGem = activeFeature === 'Gems' && ['Precious', 'Semi-Precious', 'Organic Gems', 'Man-Made', 'Extended Natural'].includes(activeCategory)
                 const isSpecialEffect = activeFeature === 'Gems' && activeCategory === 'Special Effects'
                 const gemImagePath = (isGem || isSpecialEffect) ? getGemImagePath(itemName) : null
-                const isSoleStrap = activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap'].includes(activeCategory)
+                const isSoleStrap = activeFeature === 'Sole/Strap' && ['Insole/Instrap/Micro Hardware', 'Outsole/Outstrap', 'Outsole/Heel'].includes(activeCategory)
                 // Special Effects and Colour Families should display as regular cards, not color swatches
                 const isSpecialCategory = activeCategory === 'Special Effects' || activeCategory === 'Colour Families' || activeCategory === 'Textures'
                 const isColorDisplay = (shouldShowColors() || isSoleStrap) && !isSpecialCategory

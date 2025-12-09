@@ -76,8 +76,19 @@
     #533e17 85%,
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
+  background-size: 200% 100%;
   z-index: 2;
   box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  animation: gradientFlow 3s ease-in-out infinite;
+}
+
+@keyframes gradientFlow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* Main Feature Selection */
@@ -166,8 +177,10 @@
     #533e17 85%,
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
+  background-size: 200% 100%;
   z-index: 2;
   box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  animation: gradientFlow 3s ease-in-out infinite;
 }
 
 .crown-cascade-card {
@@ -670,86 +683,156 @@
   text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
 }
 
-/* Sub-Category Filters */
+/* Sub-Category Filters - styled as tabs */
 .filters-section {
   display: flex;
   align-items: center;
   gap: 0;
   width: 100%;
   position: relative;
+  overflow: visible;
 }
 
-.filters-container {
-  background-color: transparent;
-  border: 0.2px solid #44444475;
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-height: 50px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+.filter-tabs {
+  display: flex;
+  gap: 0;
+  justify-content: space-around;
+  border: 0.2px solid #44444470;
+  border-radius: 18px;
+  padding: 5px 16px;
   position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: stretch;
-}
-
-.filters-container::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to right, 
-    rgba(0, 0, 0, 0) 0%, 
-    rgba(0, 0, 0, 0.4) 30%,
-    rgba(0, 0, 0, 0.7) 60%,
-    rgba(0, 0, 0, 0.9) 100%);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.filters-container::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to left, 
-    rgba(0, 0, 0, 0) 0%, 
-    rgba(0, 0, 0, 0.4) 30%,
-    rgba(0, 0, 0, 0.7) 60%,
-    rgba(0, 0, 0, 0.9) 100%);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.filters-container.has-more::after {
-  opacity: 1;
-}
-
-.filters-container.has-prev::before {
-  opacity: 1;
-}
-
-.filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
+  overflow: visible;
   width: 100%;
   min-width: 0;
-  align-items: stretch;
-  position: relative;
-  z-index: 0;
   box-sizing: border-box;
+  margin-bottom: 6px;
 }
 
+.filter-tabs::before {
+  display: none;
+}
+
+.filter-tabs-content {
+  display: flex;
+  gap: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+  flex: 1;
+  justify-content: space-around;
+  min-width: 0;
+  position: relative;
+  clip: rect(auto, auto, auto, auto);
+  clip-path: none;
+  -webkit-clip-path: none;
+}
+
+.filter-tabs-content::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-tab {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 6px 10px;
+  position: relative;
+  transition: color 0.2s;
+  font-family: 'Bodoni Moda', serif;
+  z-index: 1;
+  flex: 1;
+  text-align: center;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  color: #fff;
+}
+
+.filter-tab.active {
+  color: #fff;
+  font-weight: 400;
+  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  position: relative;
+  z-index: 2;
+}
+
+
+.filter-tab-gradient-line {
+  position: absolute;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(to right, 
+    rgba(83, 62, 23, 0) 0%, 
+    rgba(83, 62, 23, 0.3) 10%,
+    #533e17 15%, 
+    #533e17 20%,
+    #fffe88 35%, 
+    #fffe88 65%,
+    #533e17 80%,
+    #533e17 85%,
+    rgba(83, 62, 23, 0.3) 90%,
+    rgba(83, 62, 23, 0) 100%);
+  background-size: 200% 100%;
+  z-index: 1000;
+  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  animation: gradientFlow 3s ease-in-out infinite;
+  pointer-events: none;
+  will-change: background-position;
+  display: none;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+.filter-tab.active::after {
+  display: none;
+}
+
+.filter-tabs-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.5;
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.filter-tabs-indicator:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.filter-tabs-indicator:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.filter-tabs-indicator-left {
+  left: 4px;
+}
+
+.filter-tabs-indicator-right {
+  right: 4px;
+}
+
+/* Legacy filter-button styles - keeping for backward compatibility if needed */
 .filter-button {
   background-color: transparent;
   border: 0.2px solid #44444475;
@@ -1005,6 +1088,24 @@
   line-height: 1.2;
 }
 
+/* Override for gem images - they should be fixed size */
+.grid-item > .gem-image-container {
+  max-width: 80px !important;
+  max-height: 80px !important;
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Override grid-item > * max-width for gem images */
+.grid-item > .gem-image-container,
+.grid-item > .gem-image-container * {
+  max-width: 80px !important;
+  max-height: 80px !important;
+}
+
 .color-grid .grid-item {
   border-radius: 8px;
   font-size: 10px;
@@ -1092,6 +1193,10 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+  width: 80px !important;
+  height: 80px !important;
+  max-width: 80px !important;
+  max-height: 80px !important;
 }
 
 /* Gem Image Styles */
@@ -1104,10 +1209,16 @@
   overflow: visible;
 }
 
-.gem-image-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
+.gem-image-container,
+.grid-item .gem-image-container,
+.grid-item > .gem-image-container {
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  max-width: 80px !important;
+  max-height: 80px !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   position: relative;
@@ -1119,17 +1230,33 @@
     0 1px 2px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  margin: 0 auto;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.gem-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.gem-image,
+.gem-image-container img,
+.grid-item .gem-image,
+.grid-item img.gem-image,
+.grid-item .gem-image-container img,
+.grid-item > .gem-image-container > img,
+.grid-item .gem-image-container .gem-image {
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  max-width: 80px !important;
+  max-height: 80px !important;
+  object-fit: contain !important;
+  object-position: center !important;
   border-radius: 8px;
   transition: transform 0.3s ease, opacity 0.3s ease;
-  display: block;
+  display: block !important;
   opacity: 1;
   background-color: #0a0a0a;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .gem-item:hover .gem-image-container {
@@ -1144,6 +1271,10 @@
 
 .gem-item:hover .gem-image {
   transform: scale(1.05);
+  width: 100px !important;
+  height: 100px !important;
+  max-width: 100px !important;
+  max-height: 100px !important;
 }
 
 .gem-name-overlay {

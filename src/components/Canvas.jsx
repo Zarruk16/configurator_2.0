@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo } from 'react'
-import { Canvas as R3FCanvas, useThree } from '@react-three/fiber'
+import React, { Suspense, useMemo, useRef } from 'react'
+import { Canvas as R3FCanvas, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture, Environment, useProgress, Html } from '@react-three/drei'
 import { MeshStandardMaterial, MeshPhysicalMaterial, PlaneGeometry, Color, DoubleSide, TextureLoader, RepeatWrapping, Mesh, Box3, Vector3, Vector2 } from 'three'
 import './Canvas.css'
@@ -112,6 +112,80 @@ const extractColorFromName = (colorName) => {
   if (name.includes('color change') || name.includes('alexandrite')) return '#00FF7F'
   
   return '#808080' // Default grey
+}
+
+// Helper function to darken colors and increase contrast for outsole only
+const darkenAndIncreaseContrastOutsole = (hex) => {
+  if (!hex || !hex.startsWith('#')) return hex
+  
+  // Convert hex to RGB
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  
+  // Darken by reducing brightness (multiply by 0.75)
+  // Increase contrast by moving away from middle gray (128)
+  const darkenFactor = 0.75
+  const contrastIncrease = 0.3
+  const middleGray = 128
+  
+  // First darken
+  const darkenedR = r * darkenFactor
+  const darkenedG = g * darkenFactor
+  const darkenedB = b * darkenFactor
+  
+  // Then increase contrast by moving away from middle gray
+  const newR = darkenedR + (darkenedR - middleGray) * contrastIncrease
+  const newG = darkenedG + (darkenedG - middleGray) * contrastIncrease
+  const newB = darkenedB + (darkenedB - middleGray) * contrastIncrease
+  
+  // Clamp values to 0-255
+  const clampedR = Math.max(0, Math.min(255, Math.round(newR)))
+  const clampedG = Math.max(0, Math.min(255, Math.round(newG)))
+  const clampedB = Math.max(0, Math.min(255, Math.round(newB)))
+  
+  // Convert back to hex
+  return '#' + [clampedR, clampedG, clampedB].map(x => {
+    const hex = x.toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }).join('')
+}
+
+// Helper function to reduce brightness and increase contrast for insole/instrap only
+const reduceBrightnessAndIncreaseContrastInsole = (hex) => {
+  if (!hex || !hex.startsWith('#')) return hex
+  
+  // Convert hex to RGB
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  
+  // Reduce brightness by reducing RGB values (multiply by 0.8)
+  // Increase contrast by moving away from middle gray (128)
+  const brightnessReduction = 0.8
+  const contrastIncrease = 0.35
+  const middleGray = 128
+  
+  // First reduce brightness
+  const reducedR = r * brightnessReduction
+  const reducedG = g * brightnessReduction
+  const reducedB = b * brightnessReduction
+  
+  // Then increase contrast by moving away from middle gray
+  const newR = reducedR + (reducedR - middleGray) * contrastIncrease
+  const newG = reducedG + (reducedG - middleGray) * contrastIncrease
+  const newB = reducedB + (reducedB - middleGray) * contrastIncrease
+  
+  // Clamp values to 0-255
+  const clampedR = Math.max(0, Math.min(255, Math.round(newR)))
+  const clampedG = Math.max(0, Math.min(255, Math.round(newG)))
+  const clampedB = Math.max(0, Math.min(255, Math.round(newB)))
+  
+  // Convert back to hex
+  return '#' + [clampedR, clampedG, clampedB].map(x => {
+    const hex = x.toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }).join('')
 }
 
 // Color mapping utility (matches ConfigurationPanel)
@@ -396,7 +470,7 @@ function useBrownLeatherTextures() {
 // Component to load and display the shoe model
 function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {} }) {
   // Use environment variable for model URL, fallback to local model file
-  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe28-v1.glb'
   const { scene } = useGLTF(modelPath)
   
   // Load brown leather textures directly for insole
@@ -407,8 +481,12 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   const { scene: woodTextureScene } = useGLTF(woodTexturePath)
   
   // Load leather texture GLTF for outsole
-  const outsoleLeatherTexturePath = '/assets/textures/leather_red_03_4k.gltf/leather_red_03_4k.gltf'
+  const outsoleLeatherTexturePath = '/assets/textures/leather_white_4k.gltf/leather_white_4k.gltf'
   const { scene: outsoleLeatherTextureScene } = useGLTF(outsoleLeatherTexturePath)
+  
+  // Load leather texture GLTF for insole/instrap
+  const insoleLeatherTexturePath = '/assets/textures/leather_red_02_4k.gltf/leather_red_02_4k.gltf'
+  const { scene: insoleLeatherTextureScene } = useGLTF(insoleLeatherTexturePath)
   
   // Metal textures disabled for now - was causing issues
   // const metalTextures = useMetalTextures()
@@ -446,6 +524,22 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     return materials.length > 0 ? materials[0] : null // Use first material found
   }, [outsoleLeatherTextureScene])
   
+  // Extract materials from insole leather texture GLTF
+  const insoleLeatherMaterials = React.useMemo(() => {
+    if (!insoleLeatherTextureScene) return null
+    const materials = []
+    insoleLeatherTextureScene.traverse((child) => {
+      if (child.isMesh && child.material) {
+        if (Array.isArray(child.material)) {
+          materials.push(...child.material)
+        } else {
+          materials.push(child.material)
+        }
+      }
+    })
+    return materials.length > 0 ? materials[0] : null // Use first material found
+  }, [insoleLeatherTextureScene])
+  
   
   // Clone the scene to avoid mutating the original
   const clonedScene = useMemo(() => {
@@ -479,7 +573,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     lastAppliedColors.current['Crown:default'] = 'Fancy Green'
     lastAppliedColors.current['Cascade:default'] = 'Purple-Red'
     lastAppliedColors.current['Sole/Strap:Insole/Instrap/Micro Hardware'] = 'Black' // Black for insole
-    lastAppliedColors.current['Sole/Strap:Outsole/Outstrap'] = 'Red' // Red for outsole
+    lastAppliedColors.current['Sole/Strap:Outsole/Outstrap'] = 'Deep Red' // Deep Red for outsole
   }
   
   // Comprehensive mesh to feature/category mapping
@@ -495,13 +589,24 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     
     // Exact mesh name mappings (case-insensitive)
     // Handle various naming conventions including underscores, spaces, and different prefixes
-    // IMPORTANT: Check outsole BEFORE heel to avoid conflicts with names like 'Outsole_Outstrap_Heel'
-    if (name === 'g_insoleinstrapmicro_hardware' || name.includes('insoleinstrapmicro') || 
-        name.includes('insole') || name.includes('instrap') || name.includes('micro_hardware')) {
+    // IMPORTANT: Check Solebottom BEFORE insole/instrap to properly distinguish them
+    const lowerName = name.toLowerCase()
+    if (lowerName.includes('solebottom') || lowerName.includes('sole_bottom') || 
+        lowerName.includes('sole bottom') || lowerName === 'solebottom' ||
+        lowerName.includes('solebottom_') || lowerName.includes('_solebottom')) {
+      mapping.feature = 'Sole/Strap'
+      mapping.category = 'Solebottom' // Separate category for solid sole bottom
+    } else if (name === 'g_insoleinstrapmicro_hardware' || name.includes('insoleinstrapmicro') || 
+        (name.includes('insole') || name.includes('instrap')) && !name.toLowerCase().includes('solebottom')) {
       mapping.feature = 'Sole/Strap'
       mapping.category = 'Insole/Instrap/Micro Hardware'
+    } else if ((name.includes('outsole') && name.includes('heel')) || 
+               name.includes('outsoleheel') || name.includes('outsole_heel')) {
+      // Outsole/Heel - should use metal material
+      mapping.feature = 'Sole/Strap'
+      mapping.category = 'Outsole/Heel'
     } else if (name === 'g_outsoleoutstrap' || name.includes('outsoleoutstrap') || 
-               name.includes('outsole') || name.includes('outstrap')) {
+               (name.includes('outsole') || name.includes('outstrap')) && !name.includes('heel')) {
       mapping.feature = 'Sole/Strap'
       mapping.category = 'Outsole/Outstrap'
     } else if (name === 'g_heel' || name === 'heel' || name === 'gheel' || name.includes('_heel') || 
@@ -536,14 +641,30 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     }
     
     // Fallback mappings for partial matches (in case of variations)
-    // IMPORTANT: Check outsole BEFORE heel to avoid conflicts with names like 'Outsole_Outstrap_Heel'
+    // IMPORTANT: Check Solebottom BEFORE insole/instrap to properly distinguish them
     if (!mapping.feature) {
-      if (name.includes('insole') || name.includes('instrap') || name.includes('micro')) {
+      const lowerName = name.toLowerCase()
+      if (lowerName.includes('solebottom') || lowerName.includes('sole_bottom') || 
+          lowerName.includes('sole bottom') || lowerName === 'solebottom' ||
+          lowerName.includes('solebottom_') || lowerName.includes('_solebottom')) {
+        mapping.feature = 'Sole/Strap'
+        mapping.category = 'Solebottom' // Separate category for solid sole bottom
+      } else if ((name.includes('insole') || name.includes('instrap') || name.includes('micro')) && 
+                 !name.toLowerCase().includes('solebottom')) {
         mapping.feature = 'Sole/Strap'
         mapping.category = 'Insole/Instrap/Micro Hardware'
-      } else if (name.includes('outsole') || name.includes('outstrap')) {
+      } else if ((name.includes('outsole') && name.includes('heel')) || 
+                 name.includes('outsoleheel') || name.includes('outsole_heel')) {
+        // Outsole/Heel - should use metal material
+        mapping.feature = 'Sole/Strap'
+        mapping.category = 'Outsole/Heel'
+      } else if ((name.includes('outsole') || name.includes('outstrap')) && !name.includes('heel')) {
         mapping.feature = 'Sole/Strap'
         mapping.category = 'Outsole/Outstrap'
+      } else if (name.includes('sole') && !name.includes('insole') && !name.includes('outsole')) {
+        // Generic "sole" (not insole or outsole) - should be solid
+        mapping.feature = 'Sole/Strap'
+        mapping.category = 'Sole' // Separate category for solid sole
       } else if (name.includes('heel')) {
         mapping.feature = 'Heel'
         mapping.category = null
@@ -562,8 +683,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
       } else if (name.includes('glass')) {
         mapping.feature = 'Glass'
         mapping.category = null
-      } else if (name.includes('sole') || name.includes('strap') || name.includes('hardware')) {
-        // Generic sole/strap mapping
+      } else if (name.includes('strap') || name.includes('hardware')) {
+        // Generic strap/hardware mapping
         mapping.feature = 'Sole/Strap'
         mapping.category = 'Outsole/Outstrap' // Default to outsole
       } else {
@@ -617,14 +738,24 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           meshMap.current[parentName].push(child)
           
           // Also map based on parent name - prioritize parent mapping if it's more specific
+          // BUT: Don't override if child has a specific category like Solebottom
           const parentMapping = createMeshMapping(child.parent.name)
           if (parentMapping.feature) {
             // If mesh doesn't have a mapping or parent has a more specific mapping, use parent's mapping
+            // BUT: Preserve child's specific category (like Solebottom) if it exists
             if (!mapping.feature || (parentMapping.feature !== 'Material & Structure' && mapping.feature === 'Material & Structure')) {
+              // Don't override if child has a specific category like Solebottom
+              if (mapping.category === 'Solebottom') {
+                // Keep the Solebottom category, but use parent's feature if needed
+                meshMappings[originalName] = { feature: mapping.feature || parentMapping.feature, category: 'Solebottom' }
+                mapping.feature = mapping.feature || parentMapping.feature
+                // Keep category as Solebottom
+              } else {
             meshMappings[originalName] = parentMapping
-              // Update the mapping for this mesh
-              mapping.feature = parentMapping.feature
-              mapping.category = parentMapping.category
+                // Update the mapping for this mesh
+                mapping.feature = parentMapping.feature
+                mapping.category = parentMapping.category
+              }
             }
           }
         }
@@ -793,8 +924,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               return // Skip this mesh in default setup
             }
           } else if (meshMapping.feature === 'Sole/Strap') {
-            // Determine if this is outsole (reflective/patent leather) or insole (matte leather)
+            // Determine if this is outsole, insole, or solebottom
             const isOutsole = meshMapping.category === 'Outsole/Outstrap'
+            const isSolebottom = meshMapping.category === 'Solebottom'
             
             if (isOutsole) {
               // Outsole - patent/reflective leather with midnight blue default
@@ -809,6 +941,15 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               sheen: 0.0, // No sheen
               sheenRoughness: 1.0,
               envMapIntensity: 0.4, // Reduced environment map intensity for lower contrast
+              }
+            } else if (isSolebottom) {
+              // Solebottom - scuba suede texture
+              const blackColor = new Color(getColorHex('Black'))
+              defaultMaterialProps = {
+                metalness: 0.0, // Not metallic
+                roughness: 0.7, // Medium roughness for solid material
+                color: blackColor.getHex(), // Black solid
+                usePhysicalMaterial: true, // Use MeshPhysicalMaterial
               }
             } else {
               // Insole - use leather texture from GLTF if available
@@ -882,12 +1023,38 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
         }
         
         // Create material based on defaultMaterialProps or use texture material
-        // Check for insole and outsole meshes FIRST to apply textures
+        // Check for insole, outsole, solebottom, and sole meshes FIRST to apply textures
+        // Check material name for "Solebottom" - it's a material name in the model
+        const materialName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+        const materialNameLower = (materialName || '').toLowerCase()
+        const hasSolebottomMaterial = materialNameLower.includes('solebottom') || materialNameLower.includes('sole_bottom') || materialNameLower.includes('sole bottom')
+        
+        // Check if mesh is inside Outsole_Outstrap or Outsoles parent (similar to Insole_instrap)
+        const parentName = child.parent ? child.parent.name.toLowerCase() : ''
+        const isInsideOutsoleParent = parentName === 'outsole_outstrap' || parentName === 'outsoles' || 
+                                      parentName.includes('outsole_outstrap') || parentName.includes('outsoles')
+        
+        // Check if this is Outsole/Heel mesh (by mesh name or material name)
+        const meshNameLower = originalName.toLowerCase()
+        const hasOutsoleHeelMaterial = materialNameLower.includes('heel') || materialNameLower.includes('outsole_heel') || 
+                                       meshNameLower.includes('outsole_heel') || meshNameLower.includes('outsoleheel') ||
+                                       (meshNameLower.includes('outsole') && meshNameLower.includes('heel'))
+        const hasOutsoleOutstrapMaterial = !hasOutsoleHeelMaterial && (materialNameLower.includes('outsole') || materialNameLower.includes('outstrap') ||
+                                        meshNameLower.includes('outsole') || meshNameLower.includes('outstrap'))
+        
         const isInsoleMesh = meshMapping && meshMapping.feature === 'Sole/Strap' && meshMapping.category === 'Insole/Instrap/Micro Hardware'
         const isOutsoleMesh = meshMapping && meshMapping.feature === 'Sole/Strap' && meshMapping.category === 'Outsole/Outstrap'
+        const isOutsoleHeelMesh = meshMapping && meshMapping.feature === 'Sole/Strap' && meshMapping.category === 'Outsole/Heel'
+        const isSoleMesh = meshMapping && meshMapping.feature === 'Sole/Strap' && meshMapping.category === 'Sole'
+        // Solebottom is identified by material name, not mesh name or category
+        const isSolebottomMesh = isInsoleMesh && hasSolebottomMaterial
+        // Outsole/Heel is identified by being inside Outsole_Outstrap/Outsoles parent and having heel material/name
+        const isOutsoleHeelMeshCheck = isInsideOutsoleParent && hasOutsoleHeelMaterial
+        // Outsole/Outstrap is identified by being inside Outsole_Outstrap/Outsoles parent and NOT having heel material/name
+        const isOutsoleOutstrapMeshCheck = isInsideOutsoleParent && hasOutsoleOutstrapMaterial && !hasOutsoleHeelMaterial
         
-        if (isOutsoleMesh && outsoleLeatherMaterials) {
-          // Use smooth leather texture for outsole
+        if ((isOutsoleMesh || isOutsoleOutstrapMeshCheck) && outsoleLeatherMaterials) {
+          // Use smooth leather texture for outsole/outstrap
           const outsoleLeatherMat = outsoleLeatherMaterials.clone()
           
           // Ensure all texture maps are properly set
@@ -915,15 +1082,18 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           
           if (outsoleLeatherMat.isMeshStandardMaterial) {
             // Create a new MeshPhysicalMaterial with texture maps but smooth properties
+            // Set initial color from stored color (defaults to Deep Red)
+            const storedOutsoleColor = lastAppliedColors.current['Sole/Strap:Outsole/Outstrap'] || 'Deep Red'
+            const initialOutsoleColor = getColorHex(storedOutsoleColor)
             const physicalOutsoleMat = new MeshPhysicalMaterial({
-              color: outsoleLeatherMat.color,
-              map: outsoleLeatherMat.map, // Keep texture for leather look
-              normalMap: outsoleLeatherMat.normalMap,
+              color: new Color(initialOutsoleColor),
+              map: null, // Remove color texture so Deep Red color shows through
+              normalMap: outsoleLeatherMat.normalMap, // Keep normal map for surface detail
               normalScale: { x: 0.3, y: 0.3 }, // Reduced normal for smoother appearance
-              roughnessMap: outsoleLeatherMat.roughnessMap,
-              metalnessMap: outsoleLeatherMat.metalnessMap,
-              aoMap: outsoleLeatherMat.aoMap,
-              emissiveMap: outsoleLeatherMat.emissiveMap,
+              roughnessMap: outsoleLeatherMat.roughnessMap, // Keep roughness map for texture detail
+              metalnessMap: outsoleLeatherMat.metalnessMap, // Keep metalness map for texture detail
+              aoMap: outsoleLeatherMat.aoMap, // Keep AO map for shadows/detail
+              emissiveMap: null, // Remove emissive map
               side: DoubleSide,
               // Outsole leather-specific properties for smooth, shiny, reflective appearance
               metalness: 0.3, // Increased metalness for more patent leather shine
@@ -941,6 +1111,12 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             finalOutsoleLeatherMat = physicalOutsoleMat
           } else if (outsoleLeatherMat.isMeshPhysicalMaterial) {
             // For physical materials, enhance leather properties for smooth, shiny appearance
+            // Set initial color from stored color (defaults to Deep Red)
+            const storedOutsoleColor = lastAppliedColors.current['Sole/Strap:Outsole/Outstrap'] || 'Deep Red'
+            const initialOutsoleColor = getColorHex(storedOutsoleColor)
+            outsoleLeatherMat.color = new Color(initialOutsoleColor)
+            outsoleLeatherMat.map = null // Remove color texture so Deep Red color shows through
+            outsoleLeatherMat.emissiveMap = null // Remove emissive map
             outsoleLeatherMat.metalness = 0.3
             outsoleLeatherMat.roughness = 0.02 // Very low roughness for smooth surface
             outsoleLeatherMat.sheen = 0.2
@@ -959,10 +1135,105 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           
           child.material = finalOutsoleLeatherMat
           child.userData.isOutsoleMesh = true
+          child.userData.isOutsoleOutstrapMesh = isOutsoleOutstrapMeshCheck // Mark if it's from parent
           child.userData.hasOutsoleLeatherTexture = true // Using smooth leather texture
-        } else if (isInsoleMesh && outsoleLeatherMaterials) {
-          // Use red leather texture for insole (same texture that was used for outsole)
-          const insoleLeatherMat = outsoleLeatherMaterials.clone()
+        } else if (isOutsoleHeelMesh || isOutsoleHeelMeshCheck) {
+          // Create metal material for Outsole/Heel (no texture, metal properties)
+          const outsoleHeelMat = new MeshPhysicalMaterial({
+            color: new Color(defaultMaterialProps?.color || getColorHex('Gold')),
+            side: DoubleSide,
+            // Metal properties for Outsole/Heel
+            metalness: 0.95, // High metalness for metallic appearance
+            roughness: 0.08, // Low roughness for polished, mirror-like metal surface
+            clearcoat: 0.9, // High clearcoat for glossy metal finish
+            clearcoatRoughness: 0.1, // Smooth clearcoat for polished look
+            sheen: 0.2, // Enhanced sheen for metallic luster
+            sheenRoughness: 0.2,
+            specularIntensity: 0.0, // No specular highlights
+            specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+            envMapIntensity: 0.4, // Environment reflections for metal
+            ior: 0.15, // Index of refraction for metals (very low)
+          })
+          
+          // Remove all texture maps for solid metal appearance
+          outsoleHeelMat.map = null
+          outsoleHeelMat.normalMap = null
+          outsoleHeelMat.roughnessMap = null
+          outsoleHeelMat.metalnessMap = null
+          outsoleHeelMat.aoMap = null
+          outsoleHeelMat.emissiveMap = null
+          
+          outsoleHeelMat.needsUpdate = true
+          
+          child.material = outsoleHeelMat
+          child.userData.isOutsoleHeelMesh = true
+          child.userData.hasOutsoleHeelTexture = false // Metal material, no texture
+        } else if (isSolebottomMesh) {
+          // Create solid material for Solebottom (no texture)
+          // This is a material name in the insole/instrap meshes
+          console.log('Applying solid material to Solebottom material:', originalName, 'material name:', materialName)
+          // Reduce brightness and increase contrast for the whole insole/instrap mesh (including Solebottom)
+          // Use stored color (defaults to Black) - same as insole/instrap
+          const storedInsoleColor = lastAppliedColors.current['Sole/Strap:Insole/Instrap/Micro Hardware'] || 'Black'
+          const baseSolebottomColor = getColorHex(storedInsoleColor)
+          const solebottomColor = reduceBrightnessAndIncreaseContrastInsole(baseSolebottomColor)
+          const solebottomMat = new MeshPhysicalMaterial({
+            color: new Color(solebottomColor),
+            side: DoubleSide,
+            // Solebottom solid material properties
+            metalness: 0.0, // Not metallic
+            roughness: 0.7, // Medium roughness for solid material
+            sheen: 0.0, // No sheen
+            sheenRoughness: 1.0,
+            clearcoat: 0.0, // No clearcoat
+            clearcoatRoughness: 1.0,
+            envMapIntensity: 0.2, // Low environment reflections
+          })
+          
+          // Remove all texture maps for solid appearance
+          solebottomMat.map = null
+          solebottomMat.normalMap = null
+          solebottomMat.roughnessMap = null
+          solebottomMat.metalnessMap = null
+          solebottomMat.aoMap = null
+          solebottomMat.emissiveMap = null
+          
+          solebottomMat.needsUpdate = true
+          
+          child.material = solebottomMat
+          child.userData.isSolebottomMesh = true
+          child.userData.hasSolebottomTexture = false // Solid material, no texture
+        } else if (isSoleMesh) {
+          // Create solid material for sole (no texture)
+          const soleMat = new MeshPhysicalMaterial({
+            color: new Color(defaultMaterialProps?.color || getColorHex('Black')),
+            side: DoubleSide,
+            // Sole solid material properties
+            metalness: 0.0, // Not metallic
+            roughness: 0.7, // Medium roughness for solid material
+            sheen: 0.0, // No sheen
+            sheenRoughness: 1.0,
+            clearcoat: 0.0, // No clearcoat
+            clearcoatRoughness: 1.0,
+            envMapIntensity: 0.2, // Low environment reflections
+          })
+          
+          // Remove all texture maps for solid appearance
+          soleMat.map = null
+          soleMat.normalMap = null
+          soleMat.roughnessMap = null
+          soleMat.metalnessMap = null
+          soleMat.aoMap = null
+          soleMat.emissiveMap = null
+          
+          soleMat.needsUpdate = true
+          
+          child.material = soleMat
+          child.userData.isSoleMesh = true
+          child.userData.hasSoleTexture = false // Solid material, no texture
+        } else if (isInsoleMesh && !isSolebottomMesh && insoleLeatherMaterials) {
+          // Use leather texture for insole/instrap (but not for Solebottom material)
+          const insoleLeatherMat = insoleLeatherMaterials.clone()
           
           // Ensure all texture maps are properly set
           if (insoleLeatherMat.map) insoleLeatherMat.map.needsUpdate = true
@@ -987,16 +1258,20 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           let finalInsoleLeatherMat = insoleLeatherMat
           
           if (insoleLeatherMat.isMeshStandardMaterial) {
-            // Create a new MeshPhysicalMaterial with all texture maps from the original
+            // Create a new MeshPhysicalMaterial with detail maps only (no color texture)
+            // Color texture is removed so that selected colors can show through properly
+            // Set initial color from stored color (defaults to Black)
+            const storedInsoleColor = lastAppliedColors.current['Sole/Strap:Insole/Instrap/Micro Hardware'] || 'Black'
+            const initialInsoleColor = getColorHex(storedInsoleColor)
             const physicalInsoleMat = new MeshPhysicalMaterial({
-              color: insoleLeatherMat.color,
-              map: insoleLeatherMat.map,
-              normalMap: insoleLeatherMat.normalMap,
+              color: new Color(initialInsoleColor),
+              map: null, // Remove color texture so selected colors can show through
+              normalMap: insoleLeatherMat.normalMap, // Keep normal map for surface detail
               normalScale: insoleLeatherMat.normalScale || { x: 1, y: 1 },
-              roughnessMap: insoleLeatherMat.roughnessMap,
-              metalnessMap: insoleLeatherMat.metalnessMap,
-              aoMap: insoleLeatherMat.aoMap,
-              emissiveMap: insoleLeatherMat.emissiveMap,
+              roughnessMap: insoleLeatherMat.roughnessMap, // Keep roughness map for texture detail
+              metalnessMap: insoleLeatherMat.metalnessMap, // Keep metalness map for texture detail
+              aoMap: insoleLeatherMat.aoMap, // Keep AO map for shadows/detail
+              emissiveMap: null, // Remove emissive map
               side: DoubleSide,
               // Insole leather properties - matte leather appearance
               metalness: 0.0, // No metalness for matte leather
@@ -1013,6 +1288,13 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             finalInsoleLeatherMat = physicalInsoleMat
           } else if (insoleLeatherMat.isMeshPhysicalMaterial) {
             // For physical materials, set matte leather properties
+            // Remove color texture so selected colors can show through
+            // Set initial color from stored color (defaults to Black)
+            const storedInsoleColor = lastAppliedColors.current['Sole/Strap:Insole/Instrap/Micro Hardware'] || 'Black'
+            const initialInsoleColor = getColorHex(storedInsoleColor)
+            insoleLeatherMat.color = new Color(initialInsoleColor)
+            insoleLeatherMat.map = null // Remove color texture so selected colors can show through
+            insoleLeatherMat.emissiveMap = null // Remove emissive map
             insoleLeatherMat.metalness = 0.0
             insoleLeatherMat.roughness = 0.85
             insoleLeatherMat.sheen = 0.2
@@ -1024,7 +1306,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           
           child.material = finalInsoleLeatherMat
           child.userData.isInsoleMesh = true
-          child.userData.hasInsoleLeatherTexture = true // Using red leather texture
+          child.userData.hasInsoleLeatherTexture = true // Using leather texture
         } else if (defaultMaterialProps && defaultMaterialProps.useWoodTexture && woodMaterials) {
           // Clone the wood material from GLTF for wood meshes with all texture maps
           const woodMat = woodMaterials.clone()
@@ -1116,8 +1398,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           if (defaultMaterialProps.opacity !== undefined) physicalProps.opacity = defaultMaterialProps.opacity
           if (defaultMaterialProps.transparent !== undefined) physicalProps.transparent = defaultMaterialProps.transparent
           
-          // Don't apply default materials to insole meshes - they should use leather textures
-          if (!isInsoleMesh) {
+          // Don't apply default materials to insole, solebottom, sole, outsole, or outsole/heel meshes - they have special materials
+          if (!isInsoleMesh && !isSolebottomMesh && !isSoleMesh && !isOutsoleMesh && !isOutsoleHeelMesh) {
             child.material = new MeshPhysicalMaterial(physicalProps)
             
             if (meshMapping && meshMapping.feature === 'Gems') {
@@ -1130,8 +1412,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           }
         } else if (defaultMaterialProps) {
           // Create MeshStandardMaterial for other materials
-          // Don't apply default materials to insole meshes - they should use leather textures
-          if (!isInsoleMesh) {
+          // Don't apply default materials to insole, solebottom, sole, outsole, or outsole/heel meshes - they have special materials
+          if (!isInsoleMesh && !isSolebottomMesh && !isSoleMesh && !isOutsoleMesh && !isOutsoleHeelMesh) {
             // Ensure we have a valid color
             const materialColor = defaultMaterialProps.color || getColorHex('Silver')
           child.material = new MeshStandardMaterial({
@@ -1222,6 +1504,30 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
     console.log('Total meshes found:', meshNames.length)
     console.log('All mesh names:', meshNames)
     console.log('Mesh to Feature/Category mapping:', meshMappings)
+    
+    // Log all sole-related meshes for debugging
+    console.log('=== SOLE/INSOLE/OUTSOLE/SOLEBOTTOM MESHES ===')
+    const soleRelatedMeshes = []
+    clonedScene.traverse((child) => {
+      if (child.isMesh) {
+        const name = child.name || 'unnamed'
+        const lowerName = name.toLowerCase()
+        if (lowerName.includes('sole') || lowerName.includes('strap') || lowerName.includes('insole') || lowerName.includes('instrap') || lowerName.includes('outsole') || lowerName.includes('outstrap') || lowerName.includes('solebottom')) {
+          const mapping = meshMappings[name] || {}
+          const matName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : 'none'
+          soleRelatedMeshes.push({
+            name: name,
+            material: matName || 'none',
+            feature: mapping.feature || 'none',
+            category: mapping.category || 'none',
+            parent: child.parent?.name || 'root',
+            position: child.position ? `(${child.position.x.toFixed(2)}, ${child.position.y.toFixed(2)}, ${child.position.z.toFixed(2)})` : 'none'
+          })
+        }
+      }
+    })
+    console.table(soleRelatedMeshes)
+    console.log('=== END SOLE/INSOLE/OUTSOLE/SOLEBOTTOM MESHES ===')
     
     // Log visibility status of all meshes
     const visibilityReport = []
@@ -1543,6 +1849,12 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             colorToApplyForMesh = crownColor
                 shouldUpdate = true
               }
+        } else if (mapping.feature === 'Glass') {
+          // Glass uses the same color as Crown - they are linked
+          if (crownColor) {
+            colorToApplyForMesh = crownColor
+              shouldUpdate = true
+            }
         } else if (mapping.feature === 'Cascade') {
           // Always use cascadeColor if it exists (either new selection or stored)
           if (cascadeColor) {
@@ -1551,18 +1863,57 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             }
         } else if (mapping.feature === 'Sole/Strap') {
           // Sole/Strap - use stored color for the specific category (Insole or Outsole)
-          const soleStrapKey = `Sole/Strap:${mapping.category || 'default'}`
+          // Check material name for Solebottom (it's a material name, not a category)
+          const matName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+          const matNameLower = (matName || '').toLowerCase()
+          const hasSolebottomMat = matNameLower.includes('solebottom') || 
+                                   matNameLower.includes('sole_bottom') ||
+                                   matNameLower.includes('sole bottom')
+          
+          // Check if this is Outsole/Heel (inside Outsole_Outstrap/Outsoles parent)
+          const parentName = child.parent ? child.parent.name.toLowerCase() : ''
+          const isInsideOutsoleParent = parentName === 'outsole_outstrap' || parentName === 'outsoles' || 
+                                      parentName.includes('outsole_outstrap') || parentName.includes('outsoles')
+          const meshNameLower = meshName.toLowerCase()
+          const hasOutsoleHeelMaterial = matNameLower.includes('heel') || matNameLower.includes('outsole_heel') || 
+                                         meshNameLower.includes('outsole_heel') || meshNameLower.includes('outsoleheel') ||
+                                         (meshNameLower.includes('outsole') && meshNameLower.includes('heel'))
+          const isOutsoleHeelFromParent = isInsideOutsoleParent && hasOutsoleHeelMaterial
+          
+          let categoryToUse = mapping.category || 'default'
+          // If this mesh has Solebottom material OR mapping category is Solebottom, use Insole/Instrap color
+          // Both insole/instrap and solebottom use the same color source
+          if (mapping.category === 'Solebottom' || hasSolebottomMat) {
+            // Solebottom uses the same color as Insole/Instrap/Micro Hardware
+            categoryToUse = 'Insole/Instrap/Micro Hardware'
+          }
+          // If this mesh is Outsole/Heel (inside Outsole_Outstrap/Outsoles parent), use Outsole/Outstrap color
+          // Both Outsole/outstrap and Outsole/Heel use the same color source (from parent)
+          else if (isOutsoleHeelFromParent || mapping.category === 'Outsole/Heel') {
+            // Outsole/Heel uses the same color as Outsole/Outstrap (parent handles the color)
+            categoryToUse = 'Outsole/Outstrap'
+          }
+          
+          const soleStrapKey = `Sole/Strap:${categoryToUse}`
           const storedSoleStrapColor = lastAppliedColors.current[soleStrapKey]
           
           // Use stored color if available, otherwise use colorToApply if we're on Sole/Strap tab
           if (storedSoleStrapColor) {
             colorToApplyForMesh = storedSoleStrapColor
             shouldUpdate = true
-          } else if (activeFeature === 'Sole/Strap' && mapping.category === activeCategory && colorToApply) {
+          } else if (activeFeature === 'Sole/Strap' && 
+                     (mapping.category === activeCategory || 
+                      (mapping.category === 'Solebottom' && activeCategory === 'Insole/Instrap/Micro Hardware') ||
+                      (hasSolebottomMat && activeCategory === 'Insole/Instrap/Micro Hardware') ||
+                      (isOutsoleHeelFromParent && activeCategory === 'Outsole/Outstrap') ||
+                      (mapping.category === 'Outsole/Heel' && activeCategory === 'Outsole/Outstrap')) && 
+                     colorToApply) {
             // New selection on Sole/Strap tab for this category
+            // Both insole/instrap and solebottom use the same color
+            // Both Outsole/outstrap and Outsole/Heel use the same color (from parent)
             colorToApplyForMesh = colorToApply
-              shouldUpdate = true
-            }
+            shouldUpdate = true
+          }
         } else if (mapping.feature === activeFeature && colorToApply) {
           // For other active features, use the selected color
           colorToApplyForMesh = colorToApply
@@ -1578,12 +1929,36 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             shouldUpdate = true
         }
         
+        // Check if this is a Solebottom material mesh - it should use insole/instrap color
+        const matName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+        const matNameLower = (matName || '').toLowerCase()
+        const hasSolebottomMat = matNameLower.includes('solebottom') || 
+                                 matNameLower.includes('sole_bottom') ||
+                                 matNameLower.includes('sole bottom')
+        
+        // If this is a Solebottom material mesh, ensure it gets the insole/instrap color
+        // Both insole/instrap and solebottom use the same color source
+        if (hasSolebottomMat && mapping.feature === 'Sole/Strap') {
+          // Use the same color logic as insole/instrap - both use the same color source
+          const insoleCategoryKey = 'Insole/Instrap/Micro Hardware'
+          const soleStrapKey = `Sole/Strap:${insoleCategoryKey}`
+          const storedInsoleColor = lastAppliedColors.current[soleStrapKey]
+          
+          if (storedInsoleColor) {
+            colorToApplyForMesh = storedInsoleColor
+            shouldUpdate = true
+          } else if (activeFeature === 'Sole/Strap' && activeCategory === insoleCategoryKey && colorToApply) {
+            colorToApplyForMesh = colorToApply
+            shouldUpdate = true
+          }
+        }
+        
         // Apply color if we have a match
         if (shouldUpdate && colorToApplyForMesh && mapping) {
           // colorToApply has already been filtered to only include colors for the current feature
           // Double-check that this mesh belongs to the active feature
           
-          console.log('Updating mesh:', meshName, 'with color:', colorToApplyForMesh, 'for feature:', mapping.feature, 'activeFeature:', activeFeature)
+          console.log('Updating mesh:', meshName, 'with color:', colorToApplyForMesh, 'for feature:', mapping.feature, 'activeFeature:', activeFeature, 'hasSolebottomMat:', hasSolebottomMat)
           // Determine color and material properties based on feature type
           let colorHex = null
           let materialProps = {}
@@ -1733,7 +2108,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             }
           } else if (mapping.feature === 'Glass') {
             // Glass - realistic glass material with transparency and reflections
-            colorHex = getColorHex(colorToApplyForMesh) || '#FFFFFF' // Default to clear/white
+            // Glass uses the same color as Crown - they are linked
+            const glassColorName = crownColor || colorToApplyForMesh || 'Fancy Green'
+            colorHex = getColorHex(glassColorName) || '#FFFFFF' // Default to clear/white
             materialProps = {
               metalness: 0.0,
               roughness: 0.0, // Smooth glass surface
@@ -1752,13 +2129,43 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               transparent: true, // Enable transparency for glass
             }
           } else if (mapping.feature === 'Sole/Strap') {
-            // Determine if this is outsole (reflective/patent leather) or insole (matte leather)
+            // Check if mesh is inside Outsole_Outstrap or Outsoles parent (similar to Insole_instrap)
+            const parentName = child.parent ? child.parent.name.toLowerCase() : ''
+            const isInsideOutsoleParent = parentName === 'outsole_outstrap' || parentName === 'outsoles' || 
+                                        parentName.includes('outsole_outstrap') || parentName.includes('outsoles')
+            
+            // Check if this is Outsole/Heel mesh (by mesh name or material name)
+            const currentMatName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+            const currentMatNameLower = (currentMatName || '').toLowerCase()
+            const meshNameLower = meshName.toLowerCase()
+            const hasOutsoleHeelMaterial = currentMatNameLower.includes('heel') || currentMatNameLower.includes('outsole_heel') || 
+                                           meshNameLower.includes('outsole_heel') || meshNameLower.includes('outsoleheel') ||
+                                           (meshNameLower.includes('outsole') && meshNameLower.includes('heel'))
+            
+            // Determine if this is outsole (reflective/patent leather), outsole/heel (metal), or insole (matte leather)
             const isOutsole = mapping.category === 'Outsole/Outstrap'
+            const isOutsoleHeel = mapping.category === 'Outsole/Heel'
+            const isOutsoleHeelFromParent = isInsideOutsoleParent && hasOutsoleHeelMaterial
+            const isOutsoleOutstrapFromParent = isInsideOutsoleParent && !hasOutsoleHeelMaterial
+            
             // Use getColorHex to get the exact same color as shown on the color card background
             // This ensures the model color matches exactly what the user sees on the card
             colorHex = getColorHex(colorToApplyForMesh)
             
-            if (isOutsole) {
+            if (isOutsoleHeel || isOutsoleHeelFromParent) {
+              // Outsole/Heel - metal material with high metalness and polished appearance
+              materialProps = {
+                metalness: 0.95, // High metalness for metallic appearance
+                roughness: 0.08, // Low roughness for polished, mirror-like metal surface
+                usePhysicalMaterial: true, // Use MeshPhysicalMaterial for better reflections
+                clearcoat: 0.9, // High clearcoat for glossy metal finish
+                clearcoatRoughness: 0.1, // Smooth clearcoat for polished look
+                sheen: 0.2, // Enhanced sheen for metallic luster
+                sheenRoughness: 0.2,
+                envMapIntensity: 0.4, // Environment reflections for metal
+                ior: 0.15, // Index of refraction for metals (very low)
+              }
+            } else if (isOutsole || isOutsoleOutstrapFromParent) {
               // Outsole - patent/reflective leather with highly reflective, shiny properties
               materialProps = {
                 metalness: 0.3, // Increased metalness for more patent leather shine
@@ -1771,12 +2178,21 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 envMapIntensity: 1.2, // Increased environment map intensity for more reflections and shine
               }
             } else {
-              // Insole - use red leather texture (same as outsole texture)
-              if (child.userData.isInsoleMesh) {
+              // Sole - solid material (no texture)
+              if (child.userData.isSoleMesh) {
               materialProps = {
                   metalness: 0.0, // Not metallic
-                  roughness: 1.0, // Maximum roughness for completely matte
-                  usePhysicalMaterial: false, // Use MeshStandardMaterial
+                  roughness: 0.7, // Medium roughness for solid material
+                  usePhysicalMaterial: true, // Use MeshPhysicalMaterial
+                }
+              }
+              // Insole - use leather texture (handled separately in material application)
+              else if (child.userData.isInsoleMesh) {
+              materialProps = {
+                  metalness: 0.0, // Not metallic
+                  roughness: 0.85, // High roughness for matte leather
+                  usePhysicalMaterial: true, // Use MeshPhysicalMaterial
+                  useLeatherTexture: true, // Flag to use leather texture
                 }
               }
             }
@@ -1924,10 +2340,101 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             }
           }
           
-          // Handle insole - use red leather texture (same as outsole texture)
-          if (child.userData.isInsoleMesh && outsoleLeatherMaterials) {
-            // Use red leather texture for insole
-            const insoleLeatherMat = outsoleLeatherMaterials.clone()
+          // Handle Solebottom - scuba suede texture, uses same color as insole/instrap
+          // Check material name for "Solebottom" - it's a material name in the model
+          const currentMaterialName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+          const currentMaterialNameLower = (currentMaterialName || '').toLowerCase()
+          const hasSolebottomMaterial = currentMaterialNameLower.includes('solebottom') || 
+                                        currentMaterialNameLower.includes('sole_bottom') ||
+                                        currentMaterialNameLower.includes('sole bottom')
+          const isSolebottomMeshCheck = child.userData.isSolebottomMesh || hasSolebottomMaterial
+          
+          if (isSolebottomMeshCheck) {
+            // Create solid material for Solebottom - use same color as insole/instrap
+            // Get color from insole/instrap category (same as other insole meshes)
+            // Use the exact same colorHex that was calculated for Sole/Strap above
+            // This ensures both insole/instrap and solebottom use exactly the same color value
+            // Reduce brightness and increase contrast for the whole insole/instrap mesh (including Solebottom)
+            const baseSolebottomColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+            const solebottomColorHex = reduceBrightnessAndIncreaseContrastInsole(baseSolebottomColorHex)
+            const solebottomMat = new MeshPhysicalMaterial({
+              color: new Color(solebottomColorHex), // Apply the selected color
+              side: DoubleSide,
+              // Solebottom solid material properties
+              metalness: 0.0, // Not metallic
+              roughness: 0.7, // Medium roughness for solid material
+              sheen: 0.0, // No sheen
+              sheenRoughness: 1.0,
+              clearcoat: 0.0, // No clearcoat
+              clearcoatRoughness: 1.0,
+              envMapIntensity: 0.2, // Low environment reflections
+            })
+            
+            // Remove all texture maps for solid appearance
+            solebottomMat.map = null
+            solebottomMat.normalMap = null
+            solebottomMat.roughnessMap = null
+            solebottomMat.metalnessMap = null
+            solebottomMat.aoMap = null
+            solebottomMat.emissiveMap = null
+            
+            // Dispose old material if it exists
+            if (child.material) {
+              child.material.dispose()
+            }
+            
+            child.material = solebottomMat
+            child.material.needsUpdate = true
+            child.userData.hasSolebottomTexture = false // Solid material, no texture
+            return // Skip further material processing
+          } else if (child.userData.isSoleMesh) {
+            // Create solid material for sole
+            const soleMat = new MeshPhysicalMaterial({
+              color: new Color(colorHex),
+              side: DoubleSide,
+              // Sole solid material properties
+              metalness: 0.0, // Not metallic
+              roughness: 0.7, // Medium roughness for solid material
+              sheen: 0.0, // No sheen
+              sheenRoughness: 1.0,
+              clearcoat: 0.0, // No clearcoat
+              clearcoatRoughness: 1.0,
+              envMapIntensity: 0.2, // Low environment reflections
+            })
+            
+            // Remove all texture maps for solid appearance
+            soleMat.map = null
+            soleMat.normalMap = null
+            soleMat.roughnessMap = null
+            soleMat.metalnessMap = null
+            soleMat.aoMap = null
+            soleMat.emissiveMap = null
+            
+            // Dispose old material if it exists
+            if (child.material) {
+              child.material.dispose()
+            }
+            
+            child.material = soleMat
+            child.material.needsUpdate = true
+            child.userData.hasSoleTexture = false // Solid material, no texture
+            return // Skip further material processing
+          } else if (child.userData.isInsoleMesh && insoleLeatherMaterials) {
+            // Check if this mesh has Solebottom material - if so, skip leather texture
+            const currentMatName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+            const currentMatNameLower = (currentMatName || '').toLowerCase()
+            const hasSolebottomMat = currentMatNameLower.includes('solebottom') || 
+                                     currentMatNameLower.includes('sole_bottom') ||
+                                     currentMatNameLower.includes('sole bottom')
+            
+            if (hasSolebottomMat || child.userData.isSolebottomMesh) {
+              // This is Solebottom material - skip leather texture, it will be handled as solid material
+              return // Skip further material processing
+            }
+            
+            // Handle insole - use leather texture (but not for Solebottom material)
+            // Apply the selected color to override the texture's default red color
+            const insoleLeatherMat = insoleLeatherMaterials.clone()
             
             // Ensure all texture maps are properly set
             if (insoleLeatherMat.map) insoleLeatherMat.map.needsUpdate = true
@@ -1953,15 +2460,23 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             
             if (insoleLeatherMat.isMeshStandardMaterial) {
               // Create a new MeshPhysicalMaterial with all texture maps
+              // Apply the selected color to override the texture's default red color
+              // Use the exact same colorHex that was calculated for Sole/Strap above
+              // This ensures both insole/instrap and solebottom use exactly the same color value
+              // Reduce brightness and increase contrast for insole/instrap
+              const baseInsoleColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+              const insoleColorHex = reduceBrightnessAndIncreaseContrastInsole(baseInsoleColorHex)
               const physicalInsoleMat = new MeshPhysicalMaterial({
-                color: new Color(colorHex),
-                map: insoleLeatherMat.map,
-                normalMap: insoleLeatherMat.normalMap,
+                color: new Color(insoleColorHex), // Apply the selected color - this is the main color
+                // Remove map (albedo texture) when color is selected to allow color to show through
+                // Keep only detail maps (normal, roughness, metalness, ao) for texture detail
+                map: null, // Remove color texture so selected color is visible
+                normalMap: insoleLeatherMat.normalMap, // Keep normal map for surface detail
                 normalScale: insoleLeatherMat.normalScale || { x: 1, y: 1 },
-                roughnessMap: insoleLeatherMat.roughnessMap,
-                metalnessMap: insoleLeatherMat.metalnessMap,
-                aoMap: insoleLeatherMat.aoMap,
-                emissiveMap: insoleLeatherMat.emissiveMap,
+                roughnessMap: insoleLeatherMat.roughnessMap, // Keep roughness map for texture detail
+                metalnessMap: insoleLeatherMat.metalnessMap, // Keep metalness map for texture detail
+                aoMap: insoleLeatherMat.aoMap, // Keep AO map for shadows/detail
+                emissiveMap: null, // Remove emissive map
                 side: DoubleSide,
                 // Insole leather properties - matte leather appearance
                 metalness: 0.0, // No metalness for matte leather
@@ -1978,7 +2493,17 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               finalInsoleLeatherMat = physicalInsoleMat
             } else if (insoleLeatherMat.isMeshPhysicalMaterial) {
               // For physical materials, set matte leather properties
-              insoleLeatherMat.color = new Color(colorHex)
+              // Apply the selected color to override the texture's default red color
+              // Use the exact same colorHex that was calculated for Sole/Strap above
+              // This ensures both insole/instrap and solebottom use exactly the same color value
+              // Reduce brightness and increase contrast for insole/instrap
+              const baseInsoleColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+              const insoleColorHex = reduceBrightnessAndIncreaseContrastInsole(baseInsoleColorHex)
+              insoleLeatherMat.color = new Color(insoleColorHex) // Apply the selected color - this is the main color
+              // Remove map (albedo texture) when color is selected to allow color to show through
+              insoleLeatherMat.map = null // Remove color texture so selected color is visible
+              insoleLeatherMat.emissiveMap = null // Remove emissive map
+              // Keep detail maps (normal, roughness, metalness, ao) for texture detail
               insoleLeatherMat.metalness = 0.0
               insoleLeatherMat.roughness = 0.85
               insoleLeatherMat.sheen = 0.2
@@ -1995,7 +2520,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             
             child.material = finalInsoleLeatherMat
             child.material.needsUpdate = true
-            child.userData.hasInsoleLeatherTexture = true // Using red leather texture
+            child.userData.hasInsoleLeatherTexture = true // Using leather texture
             return // Skip further material processing
           } else if (materialProps.preserveTexture && child.userData.isWoodMesh && (woodMaterials || child.userData.hasWoodTexture)) {
             // Material already has wood textures, set to solid black
@@ -2135,31 +2660,235 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             } else if (mapping.feature === 'Crown') {
               child.userData.isCrownMesh = true
             }
-          } else if (child.userData.isOutsoleMesh && colorToApplyForMesh) {
-            // Outsole - update material with selected color while preserving texture properties
+          } else if ((child.userData.isOutsoleHeelMesh || (child.parent && (child.parent.name.toLowerCase() === 'outsole_outstrap' || child.parent.name.toLowerCase() === 'outsoles' || child.parent.name.toLowerCase().includes('outsole_outstrap') || child.parent.name.toLowerCase().includes('outsoles')) && ((child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : '').toLowerCase().includes('heel') || meshName.toLowerCase().includes('heel')))) && colorToApplyForMesh) {
+            // Outsole/Heel - update metal material with selected color
             // IMPORTANT: Use the exact same getColorHex function as ConfigurationPanel to ensure
             // the color on the model matches exactly the background color shown on the color card
+            // Use the same colorHex calculated for Sole/Strap (from Outsole/Outstrap category) to ensure both Outsole/outstrap and Outsole/Heel have the same color
+            // The parent mesh (Outsole_Outstrap/Outsoles) handles the color, children have different textures
+            // Darken and increase contrast for outsole
+            const baseOutsoleHeelColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Gold'))
+            const outsoleHeelColorHex = darkenAndIncreaseContrastOutsole(baseOutsoleHeelColorHex)
             const currentMat = child.material
             if (currentMat) {
-              // Get the exact hex color that matches the color card background
-              const colorHexValue = getColorHex(colorToApplyForMesh)
               // Convert hex string to integer for Three.js
-              const colorValue = typeof colorHexValue === 'string' && colorHexValue.startsWith('#') 
-                ? parseInt(colorHexValue.replace('#', ''), 16)
-                : new Color(colorHexValue).getHex()
+              const colorValue = typeof outsoleHeelColorHex === 'string' && outsoleHeelColorHex.startsWith('#') 
+                ? parseInt(outsoleHeelColorHex.replace('#', ''), 16)
+                : new Color(outsoleHeelColorHex).getHex()
               // Apply the exact color from the card - this ensures what user sees on card matches model
               currentMat.color.setHex(colorValue)
-              
-              // Update material properties if specified
-              if (materialProps.metalness !== undefined) currentMat.metalness = materialProps.metalness
-              if (materialProps.roughness !== undefined) currentMat.roughness = materialProps.roughness
-              if (materialProps.clearcoat !== undefined) currentMat.clearcoat = materialProps.clearcoat
-              if (materialProps.clearcoatRoughness !== undefined) currentMat.clearcoatRoughness = materialProps.clearcoatRoughness
-              if (materialProps.sheen !== undefined) currentMat.sheen = materialProps.sheen
-              if (materialProps.sheenRoughness !== undefined) currentMat.sheenRoughness = materialProps.sheenRoughness
-              if (materialProps.envMapIntensity !== undefined) currentMat.envMapIntensity = materialProps.envMapIntensity
-              
+              // Ensure metal properties are maintained
+              currentMat.metalness = 0.95
+              currentMat.roughness = 0.08
+              currentMat.clearcoat = 0.9
+              currentMat.clearcoatRoughness = 0.1
+              currentMat.sheen = 0.2
+              currentMat.sheenRoughness = 0.2
+              currentMat.envMapIntensity = 0.4
+              currentMat.ior = 0.15
+              // Remove texture maps for solid metal appearance
+              currentMat.map = null
+              currentMat.normalMap = null
+              currentMat.roughnessMap = null
+              currentMat.metalnessMap = null
+              currentMat.aoMap = null
+              currentMat.emissiveMap = null
               currentMat.needsUpdate = true
+            }
+            return // Skip further material processing for Outsole/Heel
+          } else if (child.userData.isSolebottomMesh && colorToApplyForMesh) {
+            // Solebottom - update material with selected color (very darkened)
+            // IMPORTANT: Use the exact same getColorHex function as ConfigurationPanel to ensure
+            // the color on the model matches exactly the background color shown on the color card
+            // Use the same colorHex calculated for Sole/Strap (from Insole/Instrap category) to ensure both use the same color
+            // Reduce brightness and increase contrast for the whole insole/instrap mesh (including Solebottom)
+            const baseSolebottomColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+            const solebottomColorHex = reduceBrightnessAndIncreaseContrastInsole(baseSolebottomColorHex)
+            const currentMat = child.material
+            if (currentMat) {
+              // Convert hex string to integer for Three.js
+              const colorValue = typeof solebottomColorHex === 'string' && solebottomColorHex.startsWith('#') 
+                ? parseInt(solebottomColorHex.replace('#', ''), 16)
+                : new Color(solebottomColorHex).getHex()
+              // Apply the exact color from the card - this ensures what user sees on card matches model
+              currentMat.color.setHex(colorValue)
+              // Ensure solid material properties are maintained
+              currentMat.metalness = 0.0
+              currentMat.roughness = 0.7
+              currentMat.sheen = 0.0
+              currentMat.sheenRoughness = 1.0
+              currentMat.clearcoat = 0.0
+              currentMat.clearcoatRoughness = 1.0
+              currentMat.envMapIntensity = 0.2
+              // Remove texture maps for solid appearance
+              currentMat.map = null
+              currentMat.normalMap = null
+              currentMat.roughnessMap = null
+              currentMat.metalnessMap = null
+              currentMat.aoMap = null
+              currentMat.emissiveMap = null
+              currentMat.needsUpdate = true
+            }
+            return // Skip further material processing for Solebottom
+          } else if (child.userData.isInsoleMesh && colorToApplyForMesh) {
+            // Check if this mesh has Solebottom material - if so, skip leather texture
+            const currentMatName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+            const currentMatNameLower = (currentMatName || '').toLowerCase()
+            const hasSolebottomMat = currentMatNameLower.includes('solebottom') || 
+                                     currentMatNameLower.includes('sole_bottom') ||
+                                     currentMatNameLower.includes('sole bottom')
+            
+            if (hasSolebottomMat || child.userData.isSolebottomMesh) {
+              // This is Solebottom material - skip leather texture, it will be handled with solid material
+              return // Skip further material processing
+            }
+            
+            // Insole/Instrap - update material with selected color while preserving leather texture detail
+            // IMPORTANT: Use the exact same getColorHex function as ConfigurationPanel to ensure
+            // the color on the model matches exactly the background color shown on the color card
+            // Use the same colorHex calculated for Sole/Strap to ensure both insole/instrap and solebottom use the same color
+            // Reduce brightness and increase contrast for insole/instrap
+            const baseInsoleColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+            const insoleColorHex = reduceBrightnessAndIncreaseContrastInsole(baseInsoleColorHex)
+            const currentMat = child.material
+            if (currentMat) {
+              // Convert hex string to integer for Three.js
+              const colorValue = typeof insoleColorHex === 'string' && insoleColorHex.startsWith('#') 
+                ? parseInt(insoleColorHex.replace('#', ''), 16)
+                : new Color(insoleColorHex).getHex()
+              // Apply the exact color from the card - this ensures what user sees on card matches model
+              currentMat.color.setHex(colorValue)
+              // Remove color texture map to allow selected color to show through
+              // Keep detail maps (normal, roughness, metalness, AO) for leather texture detail
+              currentMat.map = null // Remove color texture so selected color is visible
+              currentMat.emissiveMap = null
+              currentMat.needsUpdate = true
+            }
+            return // Skip further material processing for insole
+          } else if ((child.userData.isOutsoleMesh || child.userData.isOutsoleOutstrapMesh) && colorToApplyForMesh) {
+            // Check if this mesh has Outsole/Heel material - if so, skip leather texture
+            const currentMatName = child.material ? (Array.isArray(child.material) ? child.material[0]?.name : child.material.name) : ''
+            const currentMatNameLower = (currentMatName || '').toLowerCase()
+            const meshNameLower = meshName.toLowerCase()
+            const hasOutsoleHeelMat = currentMatNameLower.includes('heel') || currentMatNameLower.includes('outsole_heel') || 
+                                      meshNameLower.includes('outsole_heel') || meshNameLower.includes('outsoleheel') ||
+                                      (meshNameLower.includes('outsole') && meshNameLower.includes('heel'))
+            
+            if (hasOutsoleHeelMat || child.userData.isOutsoleHeelMesh) {
+              // This is Outsole/Heel material - skip leather texture, it will be handled with metal material
+              return // Skip further material processing
+            }
+            
+            // Outsole/Outstrap - update material with selected color while preserving leather texture detail
+            // IMPORTANT: Use the exact same getColorHex function as ConfigurationPanel to ensure
+            // the color on the model matches exactly the background color shown on the color card
+            // Use the same colorHex calculated for Sole/Strap to ensure both Outsole/outstrap and Outsole/Heel have the same color
+            // Darken and increase contrast for outsole
+            const baseOutsoleColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Black'))
+            const outsoleColorHex = darkenAndIncreaseContrastOutsole(baseOutsoleColorHex)
+            
+            // Check if material already has leather texture, if not, apply it
+            if (!child.userData.hasOutsoleLeatherTexture && outsoleLeatherMaterials) {
+              // Apply leather texture material
+              const outsoleLeatherMat = outsoleLeatherMaterials.clone()
+              
+              // Ensure all texture maps are properly set
+              if (outsoleLeatherMat.map) outsoleLeatherMat.map.needsUpdate = true
+              if (outsoleLeatherMat.normalMap) {
+                outsoleLeatherMat.normalMap.needsUpdate = true
+                outsoleLeatherMat.normalScale = { x: 0.3, y: 0.3 } // Reduced normal for smoother appearance
+              }
+              if (outsoleLeatherMat.roughnessMap) {
+                outsoleLeatherMat.roughnessMap.needsUpdate = true
+              }
+              if (outsoleLeatherMat.metalnessMap) {
+                outsoleLeatherMat.metalnessMap.needsUpdate = true
+              }
+              if (outsoleLeatherMat.aoMap) {
+                outsoleLeatherMat.aoMap.needsUpdate = true
+              }
+              
+              outsoleLeatherMat.side = DoubleSide
+              outsoleLeatherMat.needsUpdate = true
+              
+              // Convert to MeshPhysicalMaterial for better leather properties
+              let finalOutsoleLeatherMat = outsoleLeatherMat
+              
+              if (outsoleLeatherMat.isMeshStandardMaterial) {
+                // Create a new MeshPhysicalMaterial with texture maps
+                const physicalOutsoleMat = new MeshPhysicalMaterial({
+                  color: new Color(outsoleColorHex), // Apply the selected color
+                  // Remove map (albedo texture) when color is selected to allow color to show through
+                  // Keep only detail maps (normal, roughness, metalness, ao) for texture detail
+                  map: null, // Remove color texture so selected color is visible
+                  normalMap: outsoleLeatherMat.normalMap, // Keep normal map for surface detail
+                  normalScale: { x: 0.3, y: 0.3 }, // Reduced normal for smoother appearance
+                  roughnessMap: outsoleLeatherMat.roughnessMap, // Keep roughness map for texture detail
+                  metalnessMap: outsoleLeatherMat.metalnessMap, // Keep metalness map for texture detail
+                  aoMap: outsoleLeatherMat.aoMap, // Keep AO map for shadows/detail
+                  emissiveMap: null, // Remove emissive map
+                  side: DoubleSide,
+                  // Outsole leather properties - patent/reflective leather appearance
+                  metalness: 0.3, // Increased metalness for more patent leather shine
+                  roughness: 0.02, // Very low roughness for highly reflective, mirror-like shiny surface
+                  sheen: 0.2, // Sheen for additional glossy appearance
+                  sheenRoughness: 0.2,
+                  clearcoat: 0.3, // Clearcoat for extra shine
+                  clearcoatRoughness: 0.1, // Smooth clearcoat for maximum shine
+                  envMapIntensity: 1.2, // Increased environment map intensity for more reflections and shine
+                })
+                
+                // Dispose old material
+                outsoleLeatherMat.dispose()
+                finalOutsoleLeatherMat = physicalOutsoleMat
+              } else if (outsoleLeatherMat.isMeshPhysicalMaterial) {
+                // For physical materials, set patent leather properties
+                outsoleLeatherMat.color = new Color(outsoleColorHex) // Apply the selected color
+                // Remove map (albedo texture) when color is selected to allow color to show through
+                outsoleLeatherMat.map = null // Remove color texture
+                outsoleLeatherMat.emissiveMap = null
+                outsoleLeatherMat.metalness = 0.3
+                outsoleLeatherMat.roughness = 0.02 // Very low roughness for highly reflective surface
+                outsoleLeatherMat.sheen = 0.2
+                outsoleLeatherMat.sheenRoughness = 0.2
+                outsoleLeatherMat.clearcoat = 0.3
+                outsoleLeatherMat.clearcoatRoughness = 0.1
+                outsoleLeatherMat.envMapIntensity = 1.2
+                if (outsoleLeatherMat.normalMap) {
+                  outsoleLeatherMat.normalScale = { x: 0.3, y: 0.3 } // Reduced normal for smoother appearance
+                }
+              }
+              
+              child.material = finalOutsoleLeatherMat
+              child.userData.isOutsoleMesh = true
+              child.userData.hasOutsoleLeatherTexture = true // Using leather texture
+            } else {
+              // Material already has leather texture, just update color and properties
+              const currentMat = child.material
+              if (currentMat) {
+                // Convert hex string to integer for Three.js
+                const colorValue = typeof outsoleColorHex === 'string' && outsoleColorHex.startsWith('#') 
+                  ? parseInt(outsoleColorHex.replace('#', ''), 16)
+                  : new Color(outsoleColorHex).getHex()
+                // Apply the exact color from the card - this ensures what user sees on card matches model
+                currentMat.color.setHex(colorValue)
+                
+                // Update material properties if specified
+                if (materialProps.metalness !== undefined) currentMat.metalness = materialProps.metalness
+                if (materialProps.roughness !== undefined) currentMat.roughness = materialProps.roughness
+                if (materialProps.clearcoat !== undefined) currentMat.clearcoat = materialProps.clearcoat
+                if (materialProps.clearcoatRoughness !== undefined) currentMat.clearcoatRoughness = materialProps.clearcoatRoughness
+                if (materialProps.sheen !== undefined) currentMat.sheen = materialProps.sheen
+                if (materialProps.sheenRoughness !== undefined) currentMat.sheenRoughness = materialProps.sheenRoughness
+                if (materialProps.envMapIntensity !== undefined) currentMat.envMapIntensity = materialProps.envMapIntensity
+                
+                // Remove color texture map to allow selected color to show through
+                // Keep detail maps (normal, roughness, metalness, AO) for leather texture detail
+                currentMat.map = null // Remove color texture so selected color is visible
+                currentMat.emissiveMap = null
+                
+                currentMat.needsUpdate = true
+              }
             }
             return // Skip further material processing for outsole
           } else if (!needsPhysicalMaterial && isPhysicalMaterial && mapping.feature !== 'Sole/Strap') {
@@ -2215,6 +2944,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 child.userData.isCascadeMesh = true
               } else if (mapping.feature === 'Crown') {
                 child.userData.isCrownMesh = true
+              } else if (mapping.feature === 'Glass') {
+                child.userData.isGlassMesh = true
               }
             }
           }
@@ -2251,30 +2982,54 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
 }
 
 // Preload the model (commented out to allow progress tracking)
-// const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
+// const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoeee.glb'
 // useGLTF.preload(modelPath)
 
 // Brown leather textures are loaded directly via useBrownLeatherTextures hook
 
 // Loading component for model loading with progress - used inside Canvas
 function LoadingProgress() {
-  const { progress, active } = useProgress()
+  const { progress, active, item, loaded, total } = useProgress()
   
   if (!active) return null
   
+  // Calculate more accurate progress
+  // useProgress tracks all resources, but we can show more detail
+  const progressPercentage = total > 0 ? Math.round((loaded / total) * 100) : Math.round(progress)
+  
+  // Determine what's currently loading
+  let loadingText = 'Loading 3D Model...'
+  if (item) {
+    const itemName = item.toLowerCase()
+    if (itemName.includes('.glb') || itemName.includes('model')) {
+      loadingText = 'Loading 3D Model...'
+    } else if (itemName.includes('.hdr') || itemName.includes('environment')) {
+      loadingText = 'Loading Environment...'
+    } else if (itemName.includes('.gltf') || itemName.includes('texture')) {
+      loadingText = 'Loading Textures...'
+    } else {
+      loadingText = 'Loading Assets...'
+    }
+  }
+  
   return (
     <Html center>
-    <div className="loading-container">
-      <div className="loading-spinner"></div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
         <div className="loading-text">
-          Loading 3D Model... {Math.round(progress)}%
-    </div>
+          {loadingText} {progressPercentage}%
+        </div>
         <div className="loading-bar-container">
           <div 
             className="loading-bar" 
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
+        {total > 0 && (
+          <div className="loading-detail">
+            {loaded} / {total} resources
+          </div>
+        )}
       </div>
     </Html>
   )
@@ -2345,7 +3100,7 @@ function GlassTable() {
 // Reflected shoe component - creates a shadow reflection below the model
 function ReflectedShoe({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {}, mainModelScene = null }) {
   // Use environment variable for model URL, fallback to local model file
-  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe27-v1.glb'
+  const modelPath = import.meta.env.VITE_MODEL_URL || '/assets/shoe28-v1.glb'
   const { scene } = useGLTF(modelPath)
   
   // Use main model scene if provided, otherwise use loaded scene
@@ -2549,7 +3304,7 @@ function ReflectedShoe({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], 
             mat.depthWrite = true
             
             // Apply extreme darkening (4% brightness for very subtle shadow effect)
-            if (mat.color) {
+              if (mat.color) {
               const originalColor = originalColorsRef.current.get(materialKey)
               if (originalColor) {
                 mat.color.setRGB(
