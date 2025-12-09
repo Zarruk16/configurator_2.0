@@ -411,6 +411,80 @@ function useMetalTextures() {
   return textures
 }
 
+// Load diamond crystalline texture for gems
+function useDiamondTextures() {
+  const textureLoader = React.useMemo(() => new TextureLoader(), [])
+  const [textures, setTextures] = React.useState({ 
+    albedo: null, 
+    normal: null,
+    metallicSmoothness: null,
+    occlusion: null,
+    height: null
+  })
+  
+  React.useEffect(() => {
+    const basePath = '/assets/textures/spinel_texture/'
+    
+    // Helper function to load PNG texture
+    const loadPNGTexture = (filename, onLoad) => {
+      return textureLoader.load(
+        basePath + filename,
+        (texture) => {
+          // Optimize texture settings for performance
+          texture.wrapS = RepeatWrapping
+          texture.wrapT = RepeatWrapping
+          texture.generateMipmaps = true
+          texture.minFilter = texture.constructor.LinearMipmapLinearFilter
+          texture.magFilter = texture.constructor.LinearFilter
+          texture.anisotropy = 4
+          if (onLoad) onLoad(texture)
+        },
+        undefined,
+        (error) => {
+          console.log(`Spinel texture ${filename} not found:`, error)
+        }
+      )
+    }
+    
+    // Load Albedo texture (base color)
+    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Albedo.png', (tex) => {
+      setTextures(prev => ({ ...prev, albedo: tex }))
+    })
+    
+    // Load Normal map
+    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Normal_DX.png', (tex) => {
+      setTextures(prev => ({ ...prev, normal: tex }))
+    })
+    
+    // Load MetallicSmoothness texture (R=Metallic, A=Smoothness)
+    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__MetallicSmoothness.png', (tex) => {
+      setTextures(prev => ({ ...prev, metallicSmoothness: tex }))
+    })
+    
+    // Load Occlusion texture (separate)
+    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Occlusion.png', (tex) => {
+      setTextures(prev => ({ ...prev, occlusion: tex }))
+    })
+    
+    // Load Height texture (optional, for displacement)
+    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Height.png', (tex) => {
+      setTextures(prev => ({ ...prev, height: tex }))
+    })
+    
+    // Cleanup function
+    return () => {
+      setTextures(prev => {
+        Object.values(prev).forEach(texture => {
+          if (texture && texture.dispose) texture.dispose()
+        })
+        return { albedo: null, normal: null, metallicSmoothness: null, occlusion: null, height: null }
+      })
+    }
+  }, [textureLoader])
+  
+  return textures
+}
+
 // Load brown leather textures for insole (optimized for performance - using JPG only)
 function useBrownLeatherTextures() {
   const textureLoader = React.useMemo(() => new TextureLoader(), [])
@@ -475,6 +549,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   
   // Load brown leather textures directly for insole
   const brownLeatherTextures = useBrownLeatherTextures()
+  
+  // Load diamond crystalline textures for gems
+  const diamondTextures = useDiamondTextures()
   
   // Load wood texture GLTF for wood meshes
   const woodTexturePath = '/assets/textures/rosewood_veneer1_4k/rosewood_veneer1_4k.gltf'
@@ -811,9 +888,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
                 sheen: 0.2,
                 sheenRoughness: 0.3,
-                specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
-                specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
-                envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+                specularIntensity: 0.0, // No specular - removes geometry reflections
+                specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+                envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
                 opacity: 1.0, // Solid - fully opaque
                 transparent: false, // Solid gems - no transparency
               }
@@ -836,9 +913,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
               sheen: 0.5,
               sheenRoughness: 0.1,
-              specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
-              specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
-              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              specularIntensity: 0.0, // No specular - removes geometry reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
               opacity: 1.0, // Solid - fully opaque
               transparent: false, // Solid - no transparency
             }
@@ -883,9 +960,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 clearcoatRoughness: 0.0, // Smooth clearcoat like real polished gems
                 sheen: 0.0,
                 sheenRoughness: 1.0,
-                specularIntensity: 1.0, // Very high specular for strong rainbow chromatic dispersion in internal geometry reflections
-                specularColor: new Color(1.38, 0.78, 0.68), // Very strong chromatic specular for rainbow internal geometry reflections
-                envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+                specularIntensity: 0.0, // No specular - removes geometry reflections
+                specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+                envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
                 opacity: 1.0, // Solid - fully opaque
                 transparent: false, // Solid crown gems - no transparency
               }
@@ -913,9 +990,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
                 clearcoatRoughness: 0.0, // Smooth clearcoat like real polished gems
                 sheen: 0.0,
                 sheenRoughness: 1.0,
-                specularIntensity: 1.0, // Very high specular for strong rainbow chromatic dispersion in internal geometry reflections
-                specularColor: new Color(1.38, 0.78, 0.68), // Very strong chromatic specular for rainbow internal geometry reflections
-                envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+                specularIntensity: 0.0, // No specular - removes geometry reflections
+                specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+                envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
                 opacity: 1.0, // Solid - fully opaque
                 transparent: false, // Solid cascade gems - no transparency
               }
@@ -2009,9 +2086,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
               sheen: 0.5,
               sheenRoughness: 0.1,
-              specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
-              specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
-              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              specularIntensity: 0.0, // No specular - removes geometry reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
               opacity: 1.0, // Solid - fully opaque
               transparent: false, // Solid gems - no transparency
             }
@@ -2052,9 +2129,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               clearcoatRoughness: 0.0,
               sheen: 0.0,
               sheenRoughness: 1.0,
-              specularIntensity: 1.0, // Very high specular for strong rainbow chromatic dispersion in internal geometry reflections
-              specularColor: new Color(1.38, 0.78, 0.68), // Very strong chromatic specular for rainbow internal geometry reflections
-              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              specularIntensity: 0.0, // No specular - removes geometry reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
               opacity: 1.0, // Solid - not transparent
               transparent: false, // Solid cascade gems
             }
@@ -2080,9 +2157,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               clearcoatRoughness: 0.0, // Smooth clearcoat like real polished gems
               sheen: 0.0,
               sheenRoughness: 1.0,
-              specularIntensity: 1.0, // Very high specular for strong rainbow chromatic dispersion in internal geometry reflections
-              specularColor: new Color(1.38, 0.78, 0.68), // Very strong chromatic specular for rainbow internal geometry reflections
-              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              specularIntensity: 0.0, // No specular - removes geometry reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
               opacity: 1.0, // Solid - not transparent
               transparent: false, // Solid crown gems
             }
@@ -2100,9 +2177,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
               sheen: 0.5,
               sheenRoughness: 0.1,
-              specularIntensity: 1.0, // Very high specular for maximum rainbow internal geometry reflections in diamonds
-              specularColor: new Color(1.5, 0.7, 0.6), // Maximum chromatic specular for brightest rainbow internal geometry reflections
-              envMapIntensity: 0.6, // Reduced surface reflections - focus on internal reflections
+              specularIntensity: 0.0, // No specular - removes geometry reflections
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
               opacity: 1.0, // Solid - fully opaque
               transparent: false, // Solid - no transparency
             }
@@ -2418,6 +2495,72 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             child.material = soleMat
             child.material.needsUpdate = true
             child.userData.hasSoleTexture = false // Solid material, no texture
+            return // Skip further material processing
+          } else if ((mapping.feature === 'Gems' || mapping.feature === 'Beads') && diamondTextures.albedo) {
+            // Apply zircon crystalline texture to Gems and Beads - showing internal structure
+            const gemColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Diamond'))
+            
+            // Create MeshPhysicalMaterial with spinel textures showing internal details deep inside
+            // Internal texture should follow the gem's geometry and appear deep within
+            const gemMat = new MeshPhysicalMaterial({
+              color: new Color(gemColorHex),
+              // No surface color texture - clean gem color
+              map: null, // No surface texture
+              // Normal map creates internal facet structure that follows gem geometry
+              normalMap: diamondTextures.normal,
+              normalScale: { x: 0.8, y: 0.8 }, // Stronger normal map to create internal facets matching geometry
+              // Roughness map for internal surface variations
+              roughnessMap: diamondTextures.metallicSmoothness, // MetallicSmoothness alpha channel for roughness
+              // Occlusion for internal shadows showing depth and geometry
+              aoMap: diamondTextures.occlusion, // Internal occlusion following gem geometry
+              // Use emissive map to show internal structure deep inside, following gem shape
+              emissiveMap: diamondTextures.albedo,
+              emissive: new Color(gemColorHex).multiplyScalar(0.12), // Internal color from texture deep inside
+              emissiveIntensity: 0.25, // Internal light emission showing deep internal structure
+              side: DoubleSide,
+              // Realistic gem properties - internal details deep inside following geometry
+              metalness: 0.0,
+              roughness: 0.05, // Very low roughness with subtle variation for realistic polished gem
+              usePhysicalMaterial: true,
+              transmission: 0.96, // Very high transmission to see deep internal structure
+              thickness: 5.0, // Increased thickness so internal details appear deep inside the gem
+              ior: 1.72, // Spinel IOR creates internal refractions showing facets following geometry
+              clearcoat: 0.9, // High clearcoat but slightly reduced for realism
+              clearcoatRoughness: 0.05, // Very slight clearcoat roughness for realistic polish
+              sheen: 0.0, // No sheen
+              sheenRoughness: 1.0,
+              specularIntensity: 0.0, // No specular - removes geometry reflections that make it look like liquid
+              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
+              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
+              opacity: 1.0,
+              transparent: false,
+            })
+            
+            // Ensure texture maps are properly set
+            if (gemMat.normalMap) gemMat.normalMap.needsUpdate = true
+            if (gemMat.roughnessMap) gemMat.roughnessMap.needsUpdate = true
+            if (gemMat.aoMap) gemMat.aoMap.needsUpdate = true
+            if (gemMat.emissiveMap) gemMat.emissiveMap.needsUpdate = true
+            
+            // Ensure texture maps are properly set
+            if (gemMat.normalMap) gemMat.normalMap.needsUpdate = true
+            if (gemMat.roughnessMap) gemMat.roughnessMap.needsUpdate = true
+            if (gemMat.aoMap) gemMat.aoMap.needsUpdate = true
+            if (gemMat.emissiveMap) gemMat.emissiveMap.needsUpdate = true
+            
+            // Dispose old material if it exists
+            if (child.material) {
+              child.material.dispose()
+            }
+            
+            child.material = gemMat
+            child.material.needsUpdate = true
+            if (mapping.feature === 'Gems') {
+              child.userData.isGemMesh = true
+            } else if (mapping.feature === 'Beads') {
+              child.userData.isBeadMesh = true
+            }
+            child.userData.hasDiamondTexture = true
             return // Skip further material processing
           } else if (child.userData.isInsoleMesh && insoleLeatherMaterials) {
             // Check if this mesh has Solebottom material - if so, skip leather texture
@@ -2957,6 +3100,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   }, [
     clonedScene,
     brownLeatherTextures, // Include leather textures so insole textures are available
+    diamondTextures, // Include diamond textures for gems
     // Only depend on values that should trigger material updates
     // Include activeFeature so we know when to apply colors for the current feature
     configState.activeFeature,
@@ -3014,11 +3158,11 @@ function LoadingProgress() {
   
   return (
     <Html center>
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
+    <div className="loading-container">
+      <div className="loading-spinner"></div>
         <div className="loading-text">
           {loadingText} {progressPercentage}%
-        </div>
+    </div>
         <div className="loading-bar-container">
           <div 
             className="loading-bar" 
