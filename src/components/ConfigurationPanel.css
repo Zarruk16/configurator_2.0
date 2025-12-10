@@ -1,7 +1,7 @@
 .configuration-panel {
   width: 35%;
   height: 100vh;
-  background-color: #000;
+  background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
   padding: 20px;
@@ -10,6 +10,7 @@
   box-sizing: border-box;
   flex-shrink: 0;
   min-width: 0;
+  transition: none;
 }
 
 /* Top Navigation Tabs */
@@ -17,7 +18,7 @@
   display: flex;
   gap: 0;
   justify-content: space-around;
-  border: 0.2px solid #44444470;
+  border: 0.2px solid var(--border-color);
   border-radius: 18px;
   padding: 5px 16px;
   position: relative;
@@ -34,13 +35,13 @@
 .tab {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 400;
   cursor: pointer;
   padding: 6px 10px;
   position: relative;
-  transition: color 0.2s;
+  transition: color 0.3s ease, opacity 0.3s ease;
   font-family: 'Bodoni Moda', serif;
   z-index: 1;
   flex: 1;
@@ -48,16 +49,16 @@
 }
 
 .tab:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .tab.active {
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 400;
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
-.tab.active::after {
+.tab::after {
   content: '';
   position: absolute;
   bottom: -5.2px;
@@ -76,10 +77,16 @@
     #533e17 85%,
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
-  background-size: 200% 100%;
   z-index: 2;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
-  animation: gradientFlow 3s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease, width 0.6s ease, left 0.6s ease;
+  pointer-events: none;
+  /* Animation removed */
+}
+
+.tab.active::after {
+  opacity: 1;
 }
 
 @keyframes gradientFlow {
@@ -101,6 +108,7 @@
   align-items: stretch;
   box-sizing: border-box;
   overflow: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
 /* Form Feature Tabs - styled like main tabs */
@@ -108,7 +116,7 @@
   display: flex;
   gap: 0;
   justify-content: space-around;
-  border: 0.2px solid #44444470;
+  border: 0.2px solid var(--border-color);
   border-radius: 18px;
   padding: 5px 16px;
   position: relative;
@@ -121,7 +129,7 @@
 .form-feature-tab {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 400;
   cursor: pointer;
@@ -149,16 +157,16 @@
 }
 
 .form-feature-tab:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .form-feature-tab.active {
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 400;
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
-.form-feature-tab.active::after {
+.form-feature-tab::after {
   content: '';
   position: absolute;
   bottom: -5.2px;
@@ -169,18 +177,24 @@
   background: linear-gradient(to right, 
     rgba(83, 62, 23, 0) 0%, 
     rgba(83, 62, 23, 0.3) 10%,
-    #533e17 15%, 
-    #533e17 20%,
-    #fffe88 35%, 
-    #fffe88 65%,
-    #533e17 80%,
-    #533e17 85%,
+    var(--accent-secondary) 15%, 
+    var(--accent-secondary) 20%,
+    var(--accent-primary) 35%, 
+    var(--accent-primary) 65%,
+    var(--accent-secondary) 80%,
+    var(--accent-secondary) 85%,
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
-  background-size: 200% 100%;
   z-index: 2;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
-  animation: gradientFlow 3s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease, width 0.6s ease, left 0.6s ease;
+  pointer-events: none;
+  /* Animation removed */
+}
+
+.form-feature-tab.active::after {
+  opacity: 1;
 }
 
 .crown-cascade-card {
@@ -191,7 +205,7 @@
   padding: 12px;
   border-radius: 12px;
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   overflow: visible;
   align-self: stretch;
   min-height: 100%;
@@ -200,7 +214,7 @@
 }
 
 .crown-cascade-card.active {
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   position: relative;
 }
 
@@ -229,7 +243,7 @@
   transition: all 0.2s;
   padding: 12px;
   position: relative;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .crown-cascade-tab .feature-icon {
@@ -243,7 +257,7 @@
 }
 
 .crown-cascade-tab .feature-label {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   font-family: 'Bodoni Moda', serif;
@@ -256,11 +270,11 @@
 }
 
 .crown-cascade-tab.active .feature-label {
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 .crown-cascade-tab.active {
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 .crown-cascade-tab.active::after {
@@ -283,7 +297,7 @@
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
   z-index: 3;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 .feature-card {
@@ -293,7 +307,7 @@
   padding: 12px;
   border-radius: 12px;
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   overflow: visible;
   aspect-ratio: 1;
   transition: transform 0.3s ease;
@@ -588,7 +602,7 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: 1;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
   animation: rotateGradient 8s linear infinite;
   pointer-events: none;
 }
@@ -663,7 +677,7 @@
 }
 
 .feature-label {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   font-family: 'Bodoni Moda', serif;
@@ -676,11 +690,11 @@
 }
 
 .feature-button.active .feature-label {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .feature-card.active .feature-label {
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 /* Sub-Category Filters - styled as tabs */
@@ -691,13 +705,14 @@
   width: 100%;
   position: relative;
   overflow: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
 .filter-tabs {
   display: flex;
   gap: 0;
   justify-content: space-around;
-  border: 0.2px solid #44444470;
+  border: 0.2px solid var(--border-color);
   border-radius: 18px;
   padding: 5px 16px;
   position: relative;
@@ -738,13 +753,13 @@
 .filter-tab {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 400;
   cursor: pointer;
   padding: 6px 10px;
   position: relative;
-  transition: color 0.2s;
+  transition: color 0.3s ease, opacity 0.3s ease, text-shadow 0.3s ease;
   font-family: 'Bodoni Moda', serif;
   z-index: 1;
   flex: 1;
@@ -754,15 +769,16 @@
 }
 
 .filter-tab:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .filter-tab.active {
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 400;
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
   position: relative;
   z-index: 2;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 
@@ -773,22 +789,20 @@
   background: linear-gradient(to right, 
     rgba(83, 62, 23, 0) 0%, 
     rgba(83, 62, 23, 0.3) 10%,
-    #533e17 15%, 
-    #533e17 20%,
-    #fffe88 35%, 
-    #fffe88 65%,
-    #533e17 80%,
-    #533e17 85%,
+    var(--accent-secondary) 15%, 
+    var(--accent-secondary) 20%,
+    var(--accent-primary) 35%, 
+    var(--accent-primary) 65%,
+    var(--accent-secondary) 80%,
+    var(--accent-secondary) 85%,
     rgba(83, 62, 23, 0.3) 90%,
     rgba(83, 62, 23, 0) 100%);
-  background-size: 200% 100%;
   z-index: 1000;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
-  animation: gradientFlow 3s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
+  /* Animation removed */
   pointer-events: none;
-  will-change: background-position;
   display: none;
-  transition: left 0.3s ease, width 0.3s ease;
+  transition: left 0.3s ease, width 0.3s ease, opacity 0.3s ease;
 }
 
 .filter-tab.active::after {
@@ -801,7 +815,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   opacity: 0.5;
   cursor: pointer;
@@ -816,7 +830,7 @@
 
 .filter-tabs-indicator:hover {
   opacity: 1;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--hover-bg);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -835,10 +849,10 @@
 /* Legacy filter-button styles - keeping for backward compatibility if needed */
 .filter-button {
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   border-radius: 10px;
   padding: 10px 8px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 400;
   font-family: 'Bodoni Moda', serif;
@@ -872,7 +886,7 @@
 }
 
 .filter-button:hover {
-  border-color: #555;
+  border-color: var(--border-color-strong);
   transform: scale(1.05);
 }
 
@@ -880,8 +894,8 @@
   background-color: transparent;
   border: none;
   position: relative;
-  color: #fff;
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  color: var(--text-primary);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 .filter-button.active::before {
@@ -979,6 +993,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
 .content-grid-wrapper {
@@ -989,7 +1004,7 @@
   overflow-x: hidden;
   min-height: 0;
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   border-radius: 12px;
   padding: 10px 12px;
   box-sizing: border-box;
@@ -1016,10 +1031,10 @@
   right: 0;
   height: 60px;
   background: linear-gradient(to top, 
-    rgba(0, 0, 0, 0.9) 0%, 
-    rgba(0, 0, 0, 0.7) 40%,
-    rgba(0, 0, 0, 0.4) 70%,
-    rgba(0, 0, 0, 0) 100%);
+    var(--bg-primary) 0%, 
+    var(--bg-primary) 40%,
+    var(--bg-primary) 70%,
+    transparent 100%);
   pointer-events: none;
   z-index: 1;
   opacity: 0;
@@ -1051,12 +1066,12 @@
 .grid-item {
   aspect-ratio: 1;
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 12px;
   font-family: 'Bodoni Moda', serif;
   position: relative;
@@ -1116,13 +1131,13 @@
 /* Remove forced row breaks - let colors flow naturally in 8-column rows */
 
 .grid-item:hover {
-  border-color: #555;
+  border-color: var(--border-color-strong);
   transform: translateY(-2px) scale(1.02);
   box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 0 12px rgba(255, 254, 136, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 4px 8px var(--shadow-color),
+    0 2px 4px var(--shadow-color),
+    0 0 12px var(--accent-glow),
+    inset 0 1px 0 var(--hover-bg);
   z-index: 100;
 }
 
@@ -1132,13 +1147,13 @@
   border: none !important;
   outline: none !important;
   position: relative;
-  color: #fff;
-  text-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  color: var(--text-primary);
+  text-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
   transform: translateY(-1px);
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    0 2px 6px rgba(0, 0, 0, 0.4),
-    0 0 16px rgba(255, 254, 136, 0.4);
+    0 4px 12px var(--shadow-color),
+    0 2px 6px var(--shadow-color),
+    0 0 16px var(--accent-glow);
   z-index: 50;
 }
 
@@ -1152,14 +1167,14 @@
   inset: -1.5px;
   border-radius: 10px;
   padding: 1.5px;
-  background: linear-gradient(135deg, rgba(83, 62, 23, 0) 0%, rgba(83, 62, 23, 0.4) 10%, #533e17 20%, #533e17 25%, rgba(255, 254, 136, 0.8) 30%, #fffe88 35%, #fffe88 65%, rgba(255, 254, 136, 0.8) 70%, #533e17 75%, #533e17 80%, rgba(83, 62, 23, 0.4) 90%, rgba(83, 62, 23, 0) 100%);
+  background: linear-gradient(135deg, rgba(83, 62, 23, 0) 0%, rgba(83, 62, 23, 0.4) 10%, var(--accent-secondary) 20%, var(--accent-secondary) 25%, rgba(255, 254, 136, 0.8) 30%, var(--accent-primary) 35%, var(--accent-primary) 65%, rgba(255, 254, 136, 0.8) 70%, var(--accent-secondary) 75%, var(--accent-secondary) 80%, rgba(83, 62, 23, 0.4) 90%, rgba(83, 62, 23, 0) 100%);
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: 0;
-  box-shadow: 0 0 10px rgba(255, 254, 136, 0.8), 0 0 20px rgba(255, 254, 136, 0.6), 0 0 30px rgba(83, 62, 23, 0.5), 0 0 40px rgba(83, 62, 23, 0.3);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 20px var(--accent-glow), 0 0 30px var(--accent-glow-secondary), 0 0 40px var(--accent-glow-secondary);
   animation: rotateGradient 8s linear infinite, glowFade 3s ease-in-out infinite;
   pointer-events: none;
 }
@@ -1224,7 +1239,7 @@
   position: relative;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #0a0a0a;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
   box-shadow: 
     0 2px 4px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2),
@@ -1248,13 +1263,13 @@
   min-height: 80px !important;
   max-width: 80px !important;
   max-height: 80px !important;
-  object-fit: contain !important;
+  object-fit: cover !important;
   object-position: center !important;
   border-radius: 8px;
   transition: transform 0.3s ease, opacity 0.3s ease;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
   display: block !important;
   opacity: 1;
-  background-color: #0a0a0a;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
 }
@@ -1282,7 +1297,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-family: 'Bodoni Moda', serif;
   text-align: center;
@@ -1304,7 +1319,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-family: 'Bodoni Moda', serif;
   text-align: center;
@@ -1338,7 +1353,7 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: 1;
-  box-shadow: 0 0 8px rgba(255, 254, 136, 0.6), 0 0 12px rgba(83, 62, 23, 0.4);
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 12px var(--accent-glow-secondary);
 }
 
 /* 3D Color Swatch Styles */
@@ -1406,7 +1421,7 @@
   top: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-family: 'Bodoni Moda', serif;
   text-align: center;
@@ -1462,7 +1477,7 @@
 }
 
 .content-grid-wrapper::-webkit-scrollbar-track {
-  background: #000;
+  background: var(--bg-primary);
 }
 
 .content-grid-wrapper::-webkit-scrollbar-thumb {
@@ -1678,10 +1693,10 @@
 
 .back-to-material-button {
   background-color: transparent;
-  border: 0.2px solid #44444475;
+  border: 0.2px solid var(--border-color);
   border-radius: 10px;
   padding: 10px 12px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 400;
   font-family: 'Bodoni Moda', serif;
@@ -1696,7 +1711,7 @@
 }
 
 .back-to-material-button:hover {
-  border-color: #555;
+  border-color: var(--border-color-strong);
   transform: scale(1.02);
 }
 
@@ -1705,7 +1720,7 @@
 }
 
 .material-color-label {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 400;
   font-family: 'Bodoni Moda', serif;

@@ -2,6 +2,7 @@ import React, { Suspense, useMemo, useRef } from 'react'
 import { Canvas as R3FCanvas, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useTexture, Environment, useProgress, Html } from '@react-three/drei'
 import { MeshStandardMaterial, MeshPhysicalMaterial, PlaneGeometry, Color, DoubleSide, TextureLoader, RepeatWrapping, Mesh, Box3, Vector3, Vector2 } from 'three'
+import { useTheme } from '../contexts/ThemeContext'
 import './Canvas.css'
 
 // Enhanced color extraction function
@@ -412,18 +413,41 @@ function useMetalTextures() {
 }
 
 // Load diamond crystalline texture for gems
-function useDiamondTextures() {
+function useDiamondTextures(configState = {}) {
   const textureLoader = React.useMemo(() => new TextureLoader(), [])
   const [textures, setTextures] = React.useState({ 
     albedo: null, 
     normal: null,
     metallicSmoothness: null,
     occlusion: null,
-    height: null
+    height: null,
+    orm: null // ORM combined texture (Occlusion=R, Roughness=G, Metallic=B)
   })
   
+  // Track the last selected gem name to persist texture across tab/category changes
+  const lastSelectedGemNameRef = React.useRef(null)
+  
+  // Update the tracked gem name when a gem is selected
   React.useEffect(() => {
-    const basePath = '/assets/textures/spinel_texture/'
+    if (configState.selectedGem?.gemName) {
+      lastSelectedGemNameRef.current = configState.selectedGem.gemName
+    }
+  }, [configState.selectedGem?.gemName])
+  
+  // Check if Diamond gem is selected (use tracked gem name to persist across tab changes)
+  // The texture should persist based on the selected gem, not the active feature or tab
+  const isDiamondSelected = lastSelectedGemNameRef.current === 'Diamond'
+  
+  React.useEffect(() => {
+    // Use polished diamond texture if Diamond is selected, otherwise use spinel texture for all other gems
+    // Texture persists based on selected gem, not active tab/section
+    const basePath = isDiamondSelected 
+      ? '/assets/textures/diamond_texture_polished/'
+      : '/assets/textures/spinel_texture/'
+    
+    const texturePrefix = isDiamondSelected
+      ? 'seamless_3d_texture_pbr_8k_of_polished_diamond_faceted_gem_exhibiting_brilliant_crystal_refractions_and_sparkling_gemstone_fire_free_download__'
+      : 'seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__'
     
     // Helper function to load PNG texture
     const loadPNGTexture = (filename, onLoad) => {
@@ -441,35 +465,76 @@ function useDiamondTextures() {
         },
         undefined,
         (error) => {
-          console.log(`Spinel texture ${filename} not found:`, error)
+          console.log(`Diamond texture ${filename} not found:`, error)
         }
       )
     }
     
-    // Load Albedo texture (base color)
-    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Albedo.png', (tex) => {
-      setTextures(prev => ({ ...prev, albedo: tex }))
-    })
-    
-    // Load Normal map
-    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Normal_DX.png', (tex) => {
-      setTextures(prev => ({ ...prev, normal: tex }))
-    })
-    
-    // Load MetallicSmoothness texture (R=Metallic, A=Smoothness)
-    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__MetallicSmoothness.png', (tex) => {
-      setTextures(prev => ({ ...prev, metallicSmoothness: tex }))
-    })
-    
-    // Load Occlusion texture (separate)
-    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Occlusion.png', (tex) => {
-      setTextures(prev => ({ ...prev, occlusion: tex }))
-    })
-    
-    // Load Height texture (optional, for displacement)
-    loadPNGTexture('seamless_3d_texture_pbr_8k_spinel_prismatic_gemstone_cut_with_iridescent_sparkle_effect_and_crystal_twinning_free_download__Height.png', (tex) => {
-      setTextures(prev => ({ ...prev, height: tex }))
-    })
+    // For Diamond: use all textures from diamond_texture_polished folder
+    // For other gems: use all textures from spinel folder
+    if (isDiamondSelected) {
+      // Load Albedo texture for Diamond
+      const albedoFilename = `${texturePrefix}Albedo.png`
+      loadPNGTexture(albedoFilename, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, albedo: tex }))
+      })
+      
+      // Load Normal map for Diamond
+      loadPNGTexture(`${texturePrefix}Normal_DX.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, normal: tex }))
+      })
+      
+      // Load MetallicSmoothness texture for Diamond
+      loadPNGTexture(`${texturePrefix}MetallicSmoothness.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, metallicSmoothness: tex }))
+      })
+      
+      // Load Occlusion texture for Diamond
+      loadPNGTexture(`${texturePrefix}Occlusion.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, occlusion: tex }))
+      })
+      
+      // Load Height texture for Diamond
+      loadPNGTexture(`${texturePrefix}Height.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, height: tex }))
+      })
+    } else {
+      // For other gems (spinel), load all textures
+      const albedoFilename = `${texturePrefix}Albedo.png`
+      loadPNGTexture(albedoFilename, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, albedo: tex }))
+      })
+      
+      // Load Normal map
+      loadPNGTexture(`${texturePrefix}Normal_DX.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, normal: tex }))
+      })
+      
+      // Load MetallicSmoothness texture (R=Metallic, A=Smoothness)
+      loadPNGTexture(`${texturePrefix}MetallicSmoothness.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, metallicSmoothness: tex }))
+      })
+      
+      // Load Occlusion texture (separate)
+      loadPNGTexture(`${texturePrefix}Occlusion.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, occlusion: tex }))
+      })
+      
+      // Load Height texture (optional, for displacement)
+      loadPNGTexture(`${texturePrefix}Height.png`, (tex) => {
+        tex.repeat.set(10, 10)
+        setTextures(prev => ({ ...prev, height: tex }))
+      })
+    }
     
     // Cleanup function
     return () => {
@@ -477,10 +542,10 @@ function useDiamondTextures() {
         Object.values(prev).forEach(texture => {
           if (texture && texture.dispose) texture.dispose()
         })
-        return { albedo: null, normal: null, metallicSmoothness: null, occlusion: null, height: null }
+        return { albedo: null, normal: null, metallicSmoothness: null, occlusion: null, height: null, orm: null }
       })
     }
-  }, [textureLoader])
+  }, [textureLoader, isDiamondSelected]) // Re-load textures only when selected gem changes, not when tabs change
   
   return textures
 }
@@ -541,6 +606,112 @@ function useBrownLeatherTextures() {
   return textures
 }
 
+// Camera controls component to set proper view angle
+function CameraControls() {
+  const { camera, size } = useThree()
+  
+  React.useEffect(() => {
+    // Set camera to look straight at the logo from front
+    // Logo is positioned at [-1.5, 1.5, 0] to appear at top-left of container
+    camera.position.set(-1.5, 1.5, 5)
+    camera.lookAt(-1.5, 1.5, 0)
+    camera.up.set(0, 1, 0) // Ensure up is Y-axis
+    camera.updateProjectionMatrix()
+  }, [camera])
+  
+  return null
+}
+
+// Component to load and display the 3D logo
+function Logo3D({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) {
+  const logoPath = '/assets/logo/divatudelogo.glb'
+  const { scene } = useGLTF(logoPath)
+  const groupRef = useRef()
+  
+  const clonedScene = React.useMemo(() => {
+    if (!scene) return null
+    const cloned = scene.clone()
+    
+    // Calculate bounding box to center the logo
+    const box = new Box3().setFromObject(cloned)
+    const center = box.getCenter(new Vector3())
+    
+    // Center all meshes at origin by translating their geometry
+    cloned.traverse((child) => {
+      if (child.isMesh && child.geometry) {
+        // Translate geometry vertices to center at origin
+        child.geometry.translate(-center.x, -center.y, -center.z)
+      }
+    })
+    
+    // Reset scene position to origin since geometry is now centered
+    cloned.position.set(0, 0, 0)
+    
+    return cloned
+  }, [scene])
+  
+  React.useEffect(() => {
+    if (!clonedScene) return
+    
+    // Apply materials to make logo visible and styled
+    clonedScene.traverse((child) => {
+      if (child.isMesh) {
+        if (!child.material) {
+          child.material = new MeshPhysicalMaterial({
+            color: 0xfffe88, // Golden-yellow accent color
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0x533e17,
+            emissiveIntensity: 0.3,
+          })
+        } else {
+          // Enhance existing materials
+          if (Array.isArray(child.material)) {
+            child.material.forEach(mat => {
+              mat.color.setHex(0xfffe88)
+              mat.metalness = 0.8
+              mat.roughness = 0.2
+              if (mat.emissive) {
+                mat.emissive.setHex(0x533e17)
+                mat.emissiveIntensity = 0.3
+              }
+            })
+          } else {
+            child.material.color.setHex(0xfffe88)
+            child.material.metalness = 0.8
+            child.material.roughness = 0.2
+            if (child.material.emissive) {
+              child.material.emissive.setHex(0x533e17)
+              child.material.emissiveIntensity = 0.3
+            }
+          }
+        }
+        child.material.needsUpdate = true
+      }
+    })
+  }, [clonedScene])
+  
+  // Spin logo in place (rotate around its own Y-axis center) - no orbital movement
+  useFrame((state, delta) => {
+    if (groupRef.current) {
+      // Only rotate around Y axis - position is fixed by React props
+      groupRef.current.rotation.y += delta * 0.3
+    }
+  })
+  
+  if (!clonedScene) return null
+  
+  return (
+    <group ref={groupRef} position={position}>
+      <primitive 
+        object={clonedScene} 
+        scale={scale}
+        rotation={[0, 0, 0]} // Keep straight, no slant
+      />
+    </group>
+  )
+}
+
 // Component to load and display the shoe model
 function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], configState = {} }) {
   // Use environment variable for model URL, fallback to local model file
@@ -550,8 +721,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
   // Load brown leather textures directly for insole
   const brownLeatherTextures = useBrownLeatherTextures()
   
-  // Load diamond crystalline textures for gems
-  const diamondTextures = useDiamondTextures()
+  // Load diamond crystalline textures for gems (conditionally based on selected gem)
+  const diamondTextures = useDiamondTextures(configState)
   
   // Load wood texture GLTF for wood meshes
   const woodTexturePath = '/assets/textures/rosewood_veneer1_4k/rosewood_veneer1_4k.gltf'
@@ -793,6 +964,7 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
         // Explicitly ensure mesh is visible
         child.visible = true
         
+        
         // Create mapping for this mesh
         const mapping = createMeshMapping(originalName)
         meshMappings[originalName] = mapping
@@ -874,26 +1046,26 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             const hasUserColor = !!lastAppliedColors.current['Gems:default']
             
             if (!hasUserColor) {
-              // Gems - diamond/colorless default with rainbow internal reflections
+              // Gems - realistic gemstone default properties
             const diamondColor = new Color(getColorHex('Diamond'))
             defaultMaterialProps = {
-              metalness: 0.0,
-              roughness: 0.0,
+              metalness: 0.0, // Gems are not metallic
+              roughness: 0.0, // Perfectly polished gem surface
               color: diamondColor.getHex(), // Diamond/colorless
               usePhysicalMaterial: true,
-                transmission: 0.95, // Very high transmission for maximum internal reflections and sparkles
-                thickness: 5.0, // Increased thickness for more internal light bouncing and rainbow sparkles
-                ior: 2.42, // Diamond IOR - high IOR creates strong internal reflections and dispersion
-                clearcoat: 0.4,
-                clearcoatRoughness: 0.0, // Smooth clearcoat for diamond
-                sheen: 0.2,
-                sheenRoughness: 0.3,
-                specularIntensity: 0.0, // No specular - removes geometry reflections
-                specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
-                envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
-                opacity: 1.0, // Solid - fully opaque
-                transparent: false, // Solid gems - no transparency
-              }
+              transmission: 0.98, // Very high transmission for realistic gem transparency
+              thickness: 2.0, // Realistic gem thickness for proper light refraction
+              ior: 1.77, // Realistic gem IOR (typical for colored gems like sapphire, ruby)
+              clearcoat: 1.0, // Perfect clearcoat for polished gem surface
+              clearcoatRoughness: 0.0, // Perfectly smooth clearcoat
+              sheen: 0.0, // No sheen for gems
+              sheenRoughness: 1.0,
+              specularIntensity: 0.3, // Subtle specular highlights for realism
+              specularColor: new Color(1.0, 1.0, 1.0), // White specular
+              envMapIntensity: 1.2, // Strong environment reflections for realistic gem shine
+              opacity: 1.0, // Solid - fully opaque
+              transparent: false, // Solid gems - no transparency
+            }
             } else {
               // User has selected a color - skip default material setup
               return // Skip this mesh in default setup
@@ -1673,6 +1845,16 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
       }
     })
   }, [clonedScene, metalTextures])
+  
+  // Get the last selected gem name for texture selection (shared with useDiamondTextures)
+  const lastSelectedGemNameRef = React.useRef(null)
+  
+  // Update the tracked gem name when a gem is selected
+  React.useEffect(() => {
+    if (configState.selectedGem?.gemName) {
+      lastSelectedGemNameRef.current = configState.selectedGem.gemName
+    }
+  }, [configState.selectedGem?.gemName])
   
   // Apply configuration changes to the model
   // Only update when color/material selections change, not when tabs/features change
@@ -2496,57 +2678,65 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
             child.material.needsUpdate = true
             child.userData.hasSoleTexture = false // Solid material, no texture
             return // Skip further material processing
-          } else if ((mapping.feature === 'Gems' || mapping.feature === 'Beads') && diamondTextures.albedo) {
-            // Apply zircon crystalline texture to Gems and Beads - showing internal structure
+          } else if ((mapping.feature === 'Gems' || mapping.feature === 'Beads') && (diamondTextures.albedo || diamondTextures.normal)) {
+            // Apply internal crystalline texture to Gems and Beads - showing internal structure
             const gemColorHex = colorHex || (colorToApplyForMesh ? getColorHex(colorToApplyForMesh) : getColorHex('Diamond'))
             
-            // Create MeshPhysicalMaterial with spinel textures showing internal details deep inside
-            // Internal texture should follow the gem's geometry and appear deep within
+            // Scale textures for internal detail - smaller repeat for more detailed internal structure
+            if (diamondTextures.albedo) {
+              diamondTextures.albedo.repeat.set(10, 10)
+              diamondTextures.albedo.needsUpdate = true
+            }
+            if (diamondTextures.normal) {
+              diamondTextures.normal.repeat.set(10, 10)
+              diamondTextures.normal.needsUpdate = true
+            }
+            if (diamondTextures.metallicSmoothness) {
+              diamondTextures.metallicSmoothness.repeat.set(10, 10)
+              diamondTextures.metallicSmoothness.needsUpdate = true
+            }
+            if (diamondTextures.occlusion) {
+              diamondTextures.occlusion.repeat.set(10, 10)
+              diamondTextures.occlusion.needsUpdate = true
+            }
+            if (diamondTextures.height) {
+              diamondTextures.height.repeat.set(10, 10)
+              diamondTextures.height.needsUpdate = true
+            }
+            
+            // Create MeshPhysicalMaterial for very realistic gemstones with internal texture
+            // Realistic gem properties based on actual gemstone physics
             const gemMat = new MeshPhysicalMaterial({
               color: new Color(gemColorHex),
-              // No surface color texture - clean gem color
-              map: null, // No surface texture
-              // Normal map creates internal facet structure that follows gem geometry
-              normalMap: diamondTextures.normal,
-              normalScale: { x: 0.8, y: 0.8 }, // Stronger normal map to create internal facets matching geometry
-              // Roughness map for internal surface variations
-              roughnessMap: diamondTextures.metallicSmoothness, // MetallicSmoothness alpha channel for roughness
-              // Occlusion for internal shadows showing depth and geometry
-              aoMap: diamondTextures.occlusion, // Internal occlusion following gem geometry
-              // Use emissive map to show internal structure deep inside, following gem shape
-              emissiveMap: diamondTextures.albedo,
-              emissive: new Color(gemColorHex).multiplyScalar(0.12), // Internal color from texture deep inside
-              emissiveIntensity: 0.25, // Internal light emission showing deep internal structure
+              // Internal textures - visible inside the gem (all textures for all gems)
+              map: diamondTextures.albedo, // Internal color variation
+              normalMap: diamondTextures.normal, // Internal structure detail
+              normalScale: { x: 0.1, y: 0.1 }, // Subtle normal map for internal detail
+              roughnessMap: diamondTextures.metallicSmoothness, // Internal light scattering
+              aoMap: diamondTextures.occlusion, // Internal depth/shadow
+              displacementMap: diamondTextures.height, // Internal depth detail
+              displacementScale: 0.0, // No displacement, just for visual depth
+              emissiveMap: null, // No emissive map
+              emissive: new Color(0x000000), // No emissive color
+              emissiveIntensity: 0.0,
               side: DoubleSide,
-              // Realistic gem properties - internal details deep inside following geometry
-              metalness: 0.0,
-              roughness: 0.05, // Very low roughness with subtle variation for realistic polished gem
+              // Realistic gemstone properties
+              metalness: 0.0, // Gems are not metallic
+              roughness: 0.0, // Perfectly polished gem surface
               usePhysicalMaterial: true,
-              transmission: 0.96, // Very high transmission to see deep internal structure
-              thickness: 5.0, // Increased thickness so internal details appear deep inside the gem
-              ior: 1.72, // Spinel IOR creates internal refractions showing facets following geometry
-              clearcoat: 0.9, // High clearcoat but slightly reduced for realism
-              clearcoatRoughness: 0.05, // Very slight clearcoat roughness for realistic polish
-              sheen: 0.0, // No sheen
+              transmission: 0.98, // Very high transmission for realistic gem transparency
+              thickness: 2.0, // Realistic gem thickness for proper light refraction
+              ior: 1.77, // Realistic gem IOR (between diamond 2.42 and glass 1.5, typical for colored gems)
+              clearcoat: 1.0, // Perfect clearcoat for polished gem surface
+              clearcoatRoughness: 0.0, // Perfectly smooth clearcoat
+              sheen: 0.0, // No sheen for gems
               sheenRoughness: 1.0,
-              specularIntensity: 0.0, // No specular - removes geometry reflections that make it look like liquid
-              specularColor: new Color(1.0, 1.0, 1.0), // Neutral specular
-              envMapIntensity: 0.7, // Good surface reflections for realistic polished gem
+              specularIntensity: 0.3, // Subtle specular highlights for realism
+              specularColor: new Color(1.0, 1.0, 1.0), // White specular
+              envMapIntensity: 1.2, // Strong environment reflections for realistic gem shine
               opacity: 1.0,
-              transparent: false,
+              transparent: false, // Solid gems
             })
-            
-            // Ensure texture maps are properly set
-            if (gemMat.normalMap) gemMat.normalMap.needsUpdate = true
-            if (gemMat.roughnessMap) gemMat.roughnessMap.needsUpdate = true
-            if (gemMat.aoMap) gemMat.aoMap.needsUpdate = true
-            if (gemMat.emissiveMap) gemMat.emissiveMap.needsUpdate = true
-            
-            // Ensure texture maps are properly set
-            if (gemMat.normalMap) gemMat.normalMap.needsUpdate = true
-            if (gemMat.roughnessMap) gemMat.roughnessMap.needsUpdate = true
-            if (gemMat.aoMap) gemMat.aoMap.needsUpdate = true
-            if (gemMat.emissiveMap) gemMat.emissiveMap.needsUpdate = true
             
             // Dispose old material if it exists
             if (child.material) {
@@ -2792,6 +2982,8 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
               if (metalTextures.roughness) physicalProps.roughnessMap = metalTextures.roughness
               if (metalTextures.metallic) physicalProps.metalnessMap = metalTextures.metallic
             }
+            
+            // Textures are only applied to Gems and Beads, not Crown or Cascade
             
             child.material.dispose()
             child.material = new MeshPhysicalMaterial(physicalProps)
@@ -3045,6 +3237,9 @@ function ShoeModel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], conf
           } else {
             // Same material type, just update properties
             console.log('Updating existing material for:', meshName, 'colorHex:', colorHex, 'material type:', child.material.type, 'materialProps:', materialProps)
+            
+            // Textures are only applied to Gems and Beads, not Crown or Cascade
+            
             // Use setHex to properly update the color
             if (typeof colorHex === 'string' && colorHex.startsWith('#')) {
               const colorValue = parseInt(colorHex.replace('#', ''), 16)
@@ -3194,26 +3389,6 @@ function StudioEnvironment() {
 }
 
 // Reflective ground plane component - ground with reflection
-function ReflectiveGround() {
-  return (
-    <mesh
-      rotation={[-Math.PI / 5, 0, 0]}
-      position={[0, -300, 0]}
-      receiveShadow
-    >
-      <planeGeometry args={[500, 400]} />
-      <meshStandardMaterial
-        color={new Color(0, 0, 0)}
-        metalness={0.0}
-        roughness={1.0}
-        side={DoubleSide}
-        emissive={new Color(0, 0, 0)}
-        emissiveIntensity={0}
-      />
-    </mesh>
-  )
-}
-
 // Glass table reflection component (not used currently)
 function GlassTable() {
   return (
@@ -3511,22 +3686,49 @@ function Canvas({ configState = {} }) {
 
   if (hasError) {
     return (
-      <div className="canvas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+      <div className="canvas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
         <div>3D Canvas Error - Check console for details</div>
       </div>
     )
   }
 
-  const [isDarkMode, setIsDarkMode] = React.useState(false)
+  const { theme, toggleTheme, isDark } = useTheme()
+  
+  // Get canvas background color directly from theme state to ensure sync with panel
+  const canvasBgColor = React.useMemo(() => {
+    return isDark ? '#000000' : '#cacaca'
+  }, [isDark])
+  
+  // Update reflection visibility when theme changes
+  React.useEffect(() => {
+    if (!isDark) {
+      setShowReflection(false)
+    } else {
+      // In dark mode, show reflection by default (camera position will control it)
+      setShowReflection(true)
+    }
+  }, [isDark])
 
   return (
     <div className="canvas">
-      <div className="canvas-logo-wrapper">
-        <img 
-          src="/assets/logo.svg" 
-          alt="Logo" 
-          className="canvas-logo"
-        />
+      {/* Logo floating in div at top-left */}
+      <div className="canvas-logo-floating">
+        <R3FCanvas
+          camera={{ position: [0, 0, 5], fov: 50, up: [0, 1, 0] }}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: 'transparent' }}
+        >
+          <Suspense fallback={null}>
+            <CameraControls />
+            <ambientLight intensity={1.5} />
+            <directionalLight position={[5, 5, 5]} intensity={1} />
+            <Logo3D 
+              position={[-1.5, 1.5, 0]} 
+              scale={5.0}
+              rotation={[0, 0, 0]} // Straight, no slant - positioned top-left
+            />
+          </Suspense>
+        </R3FCanvas>
       </div>
       <div className="canvas-controls-area">
         <div className="canvas-controls">
@@ -3544,10 +3746,10 @@ function Canvas({ configState = {} }) {
         </div>
         <div 
           className="control-card" 
-          title={isDarkMode ? "Light Mode" : "Dark Mode"}
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          title={isDark ? "Light Mode" : "Dark Mode"}
+          onClick={toggleTheme}
         >
-          <i className={isDarkMode ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
+          <i className={isDark ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
         </div>
       </div>
       </div>
@@ -3558,7 +3760,7 @@ function Canvas({ configState = {} }) {
           console.error('R3F Canvas error:', error)
           setHasError(true)
         }}
-        style={{ background: '#000000' }}
+        style={{ background: canvasBgColor }}
       >
             <LoadingProgress />
             <Suspense fallback={null}>
@@ -3603,6 +3805,7 @@ function Canvas({ configState = {} }) {
               />
               
               {/* Top light - from above */}
+              {/* Top light - from above */}
               <directionalLight 
                 position={[0, 25, 0]} 
                 intensity={2.4}
@@ -3613,9 +3816,9 @@ function Canvas({ configState = {} }) {
               
               {/* Hemisphere light - more ground light */}
               <hemisphereLight 
-                skyColor={0x888888}
-                groundColor={0xffffff}
-                intensity={0.3}
+                skyColor={isDark ? 0x888888 : 0xcccccc}
+                groundColor={isDark ? 0xffffff : 0xeeeeee}
+                intensity={isDark ? 0.3 : 0.5}
               />
               
               <ShoeModel 
@@ -3624,7 +3827,7 @@ function Canvas({ configState = {} }) {
                 rotation={[0, 2, 0]}
                 configState={configState}
               />
-              {showReflection && (
+              {showReflection && isDark && (
                 <ReflectedShoe 
                   position={[0, -200, 0]} 
                   scale={2400.0}
@@ -3645,13 +3848,16 @@ function Canvas({ configState = {} }) {
                 maxPolarAngle={Math.PI}
                 target={[0, 0, 0]}
                 onChange={(e) => {
-                  // Hide reflection when viewing from below the ground plane
+                  // Hide reflection when viewing from below the ground plane (only in dark mode)
                   const camera = e?.target?.object
-                  if (camera) {
+                  if (camera && isDark) {
                     const groundPlaneY = -300 // Ground plane Y position
                     // If camera is below the ground plane, hide reflection
                     const viewingFromBelow = camera.position.y < groundPlaneY
                     setShowReflection(!viewingFromBelow)
+                  } else if (!isDark) {
+                    // Always hide reflection in light mode
+                    setShowReflection(false)
                   }
                 }}
               />

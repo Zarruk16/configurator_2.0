@@ -1,5 +1,6 @@
 import React from 'react'
 import Configurator from './components/Configurator'
+import { ThemeProvider } from './contexts/ThemeContext'
 import './App.css'
 
 class ErrorBoundary extends React.Component {
@@ -33,9 +34,11 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <ErrorBoundary>
-      <div className="App">
-        <Configurator />
-      </div>
+      <ThemeProvider>
+        <div className="App">
+          <Configurator />
+        </div>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

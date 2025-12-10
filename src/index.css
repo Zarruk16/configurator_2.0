@@ -4,11 +4,48 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* Dark theme (default) */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --border-color: #44444470;
+  --border-color-strong: #444444;
+  --accent-primary: #fffe88;
+  --accent-secondary: #533e17;
+  --accent-glow: rgba(255, 254, 136, 0.6);
+  --accent-glow-secondary: rgba(83, 62, 23, 0.4);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] {
+  /* Light theme */
+  --bg-primary: #cacaca;
+  --bg-secondary: #e0e0e0;
+  --bg-tertiary: #d0d0d0;
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --border-color: #99999970;
+  --border-color-strong: #666666;
+  --accent-primary: #533e17;
+  --accent-secondary: #fffe88;
+  --accent-glow: rgba(83, 62, 23, 0.6);
+  --accent-glow-secondary: rgba(255, 254, 136, 0.4);
+  --shadow-color: rgba(0, 0, 0, 0.2);
+  --hover-bg: rgba(0, 0, 0, 0.05);
+}
+
 body {
   font-family: 'Bodoni Moda', serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: none;
 }
 
 #root {

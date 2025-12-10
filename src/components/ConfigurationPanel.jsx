@@ -298,6 +298,23 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
   const selectedMaterial = configState.selectedMaterial || null
   const showColorPicker = configState.showColorPicker || false
   
+  // State for fade transition when switching tabs
+  const [contentOpacity, setContentOpacity] = useState(0)
+  const previousTabRef = useRef(null)
+  
+  // Handle fade transition when tab changes or on initial mount
+  useEffect(() => {
+    // Always fade in when tab changes or on initial render
+    setContentOpacity(0)
+    // Fade in after short delay
+    const timer = setTimeout(() => {
+      setContentOpacity(1)
+      previousTabRef.current = activeTab
+    }, 50)
+    
+    return () => clearTimeout(timer)
+  }, [activeTab])
+  
   // Local state for UI-only concerns
   const [categoryStartIndex, setCategoryStartIndex] = useState(0) // Start index for carousel
   const categoriesPerView = 4 // Number of categories to show at once
@@ -528,9 +545,9 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
 
   // Get gem image URL - uses real images from local assets folder
   const getGemImagePath = (gemName) => {
-    // Map gem names directly to their file names in the nobg folder
-    // Based on actual files in /public/assets/images/nobg/
-    const gemFileMap = {
+    // First, try to get image from train folder (primary source)
+    // Map gem names to train folder names
+    const trainFolderMap = {
       // Precious gems
       'Diamond': 'diamond_6',
       'Emerald': 'emerald_40',
@@ -648,17 +665,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       'Mother of Pearl': 'pearl',
     }
     
-    // Check if we have a direct file mapping first
-    if (gemFileMap[gemName]) {
-      const fileName = gemFileMap[gemName]
-      // If fileName doesn't end with a number, it's a file without number suffix
-      if (!fileName.match(/\d+$/)) {
-        return `/assets/images/nobg/${fileName}.png`
-      }
-      return `/assets/images/nobg/${fileName}.png`
-    }
-    
-    // Map gem names to folder names in the train directory (fallback for unmapped gems)
+    // Map gem names to folder names in the train directory (PRIMARY SOURCE)
     // Handle special cases where folder names differ from gem names
     const gemFolderMap = {
       // Precious gems
@@ -835,24 +842,25 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
     // Get folder name, fallback to gem name if not mapped
     let folderName = gemFolderMap[gemName]
     
-    // Special case: Mother-of-Pearl uses pearl_9.png specifically
+    // Special cases - use train folder images
+    // Mother-of-Pearl uses Pearl folder
     if (gemName === 'Mother-of-Pearl' || gemName === 'Mother of Pearl') {
-      return `/assets/images/nobg/pearl_9.png`
+      return `/assets/images/archive/train/Pearl/pearl_9.jpg`
     }
     
-    // Special case: Apatite uses aquamarine_35.png specifically
+    // Apatite uses Aquamarine folder
     if (gemName === 'Apatite') {
-      return `/assets/images/nobg/aquamarine_35.png`
+      return `/assets/images/archive/train/Aquamarine/aquamarine_35.jpg`
     }
     
-    // Special case: Tortoiseshell uses zoisite_16.png specifically
+    // Tortoiseshell uses Zoisite folder
     if (gemName === 'Tortoiseshell') {
-      return `/assets/images/nobg/zoisite_16.png`
+      return `/assets/images/archive/train/Zoisite/zoisite_16.jpg`
     }
     
-    // Special case: Tagua Nut uses zoisite_1.png specifically
+    // Tagua Nut uses Zoisite folder
     if (gemName === 'Tagua Nut') {
-      return `/assets/images/nobg/zoisite_1.png`
+      return `/assets/images/archive/train/Zoisite/zoisite_1.jpg`
     }
     
     // If not found in map, try to match folder name directly (case-insensitive)
@@ -1009,29 +1017,26 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       'Iridescent': 'iredescent.jpeg' // Note: typo in filename - this is a root .jpeg file
     }
     
-    // Check for root-level .jpeg files first - try to find equivalent in nobg folder
+    // PRIMARY: Check for root-level .jpeg files in train folder first
     if (rootJpegGems[gemName]) {
-      // Convert gem name to lowercase with spaces preserved for nobg folder
-      const gemNameLower = gemName.toLowerCase()
-      // Try index 0 first, as most gems seem to have _0 or _1
-      return `/assets/images/nobg/${gemNameLower}_0.png`
+      return `/assets/images/archive/train/${rootJpegGems[gemName]}`
     }
     
+    // PRIMARY: Check for gems with .jpeg files in lowercase folders
     if (jpegGems[gemName]) {
       const folder = jpegGems[gemName]
-      // Convert to nobg folder format - use folder name directly, preserve spaces/underscores
-      const gemNameLower = folder.toLowerCase()
-      // Try index 0 first, as most gems seem to have _0 or _1
-      return `/assets/images/nobg/${gemNameLower}_0.png`
+      // Try to find .jpeg file in the folder (some folders have single .jpeg files)
+      return `/assets/images/archive/train/${folder}/${folder}.jpeg`
     }
     
+    // PRIMARY: Use train folder images (subdirectories with numbered .jpg files)
     // Get image index for Man-Made gems, default to 0 for natural gems
     const imageIndex = manMadeImageIndices[gemName] !== undefined ? manMadeImageIndices[gemName] : 0
     
-    // Use the specified image index from the nobg folder
-    // Format: /assets/images/nobg/{gemName}_{index}.png
-    const gemNameLower = folderName.toLowerCase()
-    return `/assets/images/nobg/${gemNameLower}_${imageIndex}.png`
+    // Use the specified image index from the train folder
+    // Format: /assets/images/archive/train/{FolderName}/{gemname}_{index}.jpg
+    const trainFolderLower = folderName.toLowerCase()
+    return `/assets/images/archive/train/${folderName}/${trainFolderLower}_${imageIndex}.jpg`
   }
   
   // Get alternative image URLs for fallback - try different image indices from the same folder
@@ -1090,18 +1095,143 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
     // Keep spaces in filename to match actual file naming (e.g., "sapphire blue_0.jpg" not "sapphire_blue_0.jpg")
     const gemNameLower = folderName.toLowerCase()
     
-    // Try different image indices (1, 2, 3, etc.) as fallbacks
-    return [
+    // Map gem names to train folder names (preserve case and spaces/underscores as they appear in the folder structure)
+    const trainFolderMap = {
+      'Diamond': 'Diamond', 'Emerald': 'Emerald', 'Ruby': 'Ruby', 'Sapphire': 'Sapphire Blue',
+      'Sapphire Blue': 'Sapphire Blue', 'Sapphire Pink': 'Sapphire Pink', 'Sapphire Purple': 'Sapphire Purple', 'Sapphire Yellow': 'Sapphire Yellow',
+      'Alexandrite': 'Alexandrite', 'Benitoite': 'Benitoite', 'Jadeite': 'Jade', 'Jade': 'Jade',
+      'Paraiba Tourmaline': 'Tourmaline', 'Red Spinel': 'Spinel', 'Spinel': 'Spinel',
+      'Agate': 'Blue Lace Agate', 'Amazonite': 'Amazonite', 'Amethyst': 'Amethyst', 'Ametrine': 'Ametrine',
+      'Apatite': 'Aquamarine', 'Aquamarine': 'Aquamarine', 'Aventurine': 'Aventurine Green',
+      'Aventurine Green': 'Aventurine Green', 'Aventurine Yellow': 'Aventurine Yellow',
+      'Bloodstone': 'Bloodstone', 'Carnelian': 'Carnelian', 'Chalcedony': 'Chalcedony', 'Chalcedony Blue': 'Chalcedony Blue',
+      'Chrysoprase': 'Chrysoprase', 'Citrine': 'Citrine', 'Fluorite': 'Fluorite',
+      'Garnet': 'Garnet Red', 'Garnet Red': 'Garnet Red', 'Goshenite': 'Goshenite',
+      'Heliodor': 'Beryl Golden', 'Hematite': 'hematite', 'Howlite': 'howlite', 'Iolite': 'Iolite',
+      'Jasper': 'Jasper', 'Kyanite': 'Kyanite', 'Labradorite': 'Labradorite', 'Lapis Lazuli': 'Lapis Lazuli',
+      'Larimar': 'Larimar', 'Lepidolite': 'lepidolite', 'Malachite': 'Malachite', 'Moonstone': 'Moonstone',
+      'Rainbow Moonstone': 'Moonstone', 'Morganite': 'Morganite', 'Obsidian': 'obsidian',
+      'Onyx': 'Onyx Black', 'Onyx Black': 'Onyx Black', 'Onyx Green': 'Onyx Green', 'Onyx Red': 'Onyx Red',
+      'Opal': 'Opal', 'Peridot': 'Peridot', 'Prehnite': 'Prehnite', 'Pyrite': 'Pyrite',
+      'Rhodochrosite': 'Rhodochrosite', 'Rhodolite': 'Rhodolite', 'Rhodonite': 'Rhodonite',
+      'Rose Quartz': 'Quartz Rose', 'Serpentine': 'Serpentine', 'Smoky Quartz': 'Quartz Smoky',
+      'Quartz': 'Quartz Beer', 'Quartz Beer': 'Quartz Beer', 'Quartz Lemon': 'Quartz Lemon',
+      'Quartz Rose': 'Quartz Rose', 'Quartz Rutilated': 'Quartz Rutilated', 'Quartz Smoky': 'Quartz Smoky',
+      'Sodalite': 'Sodalite', 'Spessartite': 'Spessartite', 'Sunstone': 'Sunstone', 'Tanzanite': 'Tanzanite',
+      'Tiger\'s Eye': 'Tigers Eye', 'Topaz': 'Topaz', 'Tourmaline': 'Tourmaline', 'Turquoise': 'Turquoise',
+      'Unakite': 'unakite', 'Zircon': 'Zircon', 'Tsavorite': 'Tsavorite', 'Dumortierite': 'Dumortierite',
+      'Amber': 'Amber', 'Ammolite': 'ammolite', 'Bone': 'bone', 'Bog Oak': 'bog oak',
+      'Coral': 'Coral', 'Copal': 'copal', 'Fossilized Wood': 'fossilized_wood',
+      'Ivory': 'ivory', 'Jet': 'jet', 'Nacre': 'nacre', 'Odontolite': 'odontolite',
+      'Pearl': 'Pearl', 'Mother-of-Pearl': 'Pearl', 'Mother of Pearl': 'Pearl', 'Shell': 'shell',
+      'Almandine': 'Almandine', 'Andalusite': 'Andalusite', 'Andradite': 'Andradite', 'Beryl Golden': 'Beryl Golden',
+      'Bixbite': 'Bixbite', 'Blue Lace Agate': 'Blue Lace Agate', 'Cats Eye': 'Cats Eye',
+      'Chrome Diopside': 'Chrome Diopside', 'Chrysoberyl': 'Chrysoberyl', 'Chrysocolla': 'Chrysocolla',
+      'Danburite': 'Danburite', 'Diaspore': 'Diaspore', 'Grossular': 'Grossular', 'Hessonite': 'Hessonite',
+      'Hiddenite': 'Hiddenite', 'Kunzite': 'Kunzite', 'Pyrope': 'Pyrope', 'Scapolite': 'Scapolite',
+      'Sphene': 'Sphene', 'Spodumene': 'Spodumene', 'Variscite': 'Variscite', 'Zoisite': 'Zoisite',
+      'Tortoiseshell': 'Zoisite', 'Tagua Nut': 'Zoisite',
+    }
+    
+    const trainFolderName = trainFolderMap[gemName] || folderName
+    
+    // Build fallback array: first try nobg folder, then train folder
+    const fallbacks = [
+      // Try nobg folder first (existing fallbacks)
       `/assets/images/nobg/${gemNameLower}_0.png`,
       `/assets/images/nobg/${gemNameLower}_1.png`,
       `/assets/images/nobg/${gemNameLower}_2.png`,
       `/assets/images/nobg/${gemNameLower}_3.png`,
       `/assets/images/nobg/${gemNameLower}_4.png`,
-      `/assets/images/nobg/${gemNameLower}.png`, // Some files don't have numbers
-      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}.png`, // Try with underscores
-      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}_0.png`, // Try with underscores and number
-      `https://via.placeholder.com/400/533e17/fffe88?text=${encodeURIComponent(gemName.substring(0, 10))}` // Final placeholder fallback
+      `/assets/images/nobg/${gemNameLower}.png`,
+      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}.png`,
+      `/assets/images/nobg/${gemNameLower.replace(/\s+/g, '_')}_0.png`,
     ]
+    
+    // Add train folder images as fallbacks
+    // First check if there's a root-level .jpeg file for this gem
+    const rootJpegGems = {
+      'Bismuth Crystal': 'bismuth.jpeg',
+      'Foil-Backed or Coated Stones': 'foil_backed.jpeg',
+      'Glass-filled Gems': 'glass_filled_gem.jpeg',
+      'Iridescent Glass': 'iredescent.jpeg',
+      'Neoceram': 'neoceram.jpeg',
+      'Reconstituted Stones': 'reconstituted_stones.jpeg',
+      'Resin-Impregnated Stones': 'basin_impregnated .jpeg',
+      'Triplets & Doublets': 'triplet_&_double.jpeg',
+      'Amblygonite': 'amblygonite.jpeg',
+      'Austrophyllite': 'austrophyllite.jpeg',
+      'Axinite': 'axinite.jpeg',
+      'Azurite': 'azurite.jpeg',
+      'Beryl (RARE types)': 'beryl.jpeg',
+      'Brookite': 'brookite.jpeg',
+      'Cassiterite': 'cassiterite.jpeg',
+      'Charoite': 'charoite.jpeg',
+      'Clinohumite': 'clinohumite.jpeg',
+      'Diaspore': 'diaspore.jpeg',
+      'Diaspore (Zultanite)': 'diaspore.jpeg',
+      'Dioptase': 'dioptase.jpeg',
+      'Dravite': 'dravite.jpeg',
+      'Ekanite': 'ekanite.jpeg',
+      'Enstatite': 'enstatite.jpeg',
+      'Euclase': 'euclase.jpeg',
+      'Fluorite': 'fluorite.jpeg',
+      'Fluorite (Collector-grade)': 'fluorite.jpeg',
+      'Gaspeite': 'gaspeite.jpeg',
+      'Grandidierite': 'grandidierite.jpeg',
+      'Hackmanite': 'hackmanite.jpeg',
+      'Hemimorphite': 'hemimorphite.jpeg',
+      'Idocrase (Vesuvianite)': 'vesuvianite.jpeg',
+      'Iolite': 'lolite.jpeg',
+      'Iolite (Uncommon grades)': 'lolite.jpeg',
+      'Jeremejevite': 'jeremejevite.jpeg',
+      'Kämmererite': 'kammererite.jpeg',
+      'Kornerupine': 'kornerupine.jpeg',
+      'Kudite': 'kudite.jpeg',
+      'Lazulite': 'lazulite.jpeg',
+      'Liddicoatite': 'liddicoatite.jpeg',
+      'Magnesite': 'magnesite.jpeg',
+      'Musgravite': 'musgravite.jpeg',
+      'Muscovite': 'muscovite.jpeg',
+      'Painite': 'painite.jpeg',
+      'Pectolite': 'pectolite.jpeg',
+      'Petalite': 'petalite.jpeg',
+      'Pietersite': 'pietersite.jpeg',
+      'Poudretteite': 'poudretteite.jpeg',
+      'Prehnite': 'prehnite.jpeg',
+      'Prehnite (Collector grades)': 'prehnite.jpeg',
+      'Seraphinite': 'seraphinite.jpeg',
+      'Serendibite': 'serendibite.jpeg',
+      'Shattuckite': 'shattuckite.jpeg',
+      'Smithsonite': 'smithsonite.jpeg',
+      'Sphalerite': 'sphalerite.jpeg',
+      'Sphene': 'sphene_titanite .jpeg',
+      'Sphene (Titanite)': 'sphene_titanite .jpeg',
+      'Stichtite': 'stichtite.jpeg',
+      'Sugilite': 'sugilite.jpeg',
+      'Taaffeite': 'taaffeite.jpeg',
+      'Thulite': 'thulite.jpeg',
+      'Tremolite': 'tremolite.jpeg',
+      'Vesuvianite': 'vesuvianite.jpeg',
+      'Iridescent': 'iredescent.jpeg'
+    }
+    
+    // If gem has a root-level .jpeg file, add it to fallbacks
+    if (rootJpegGems[gemName]) {
+      fallbacks.push(`/assets/images/archive/train/${rootJpegGems[gemName]}`)
+    }
+    
+    // Files in train folder subdirectories are named like: {gemname}_{number}.jpg (e.g., alexandrite_0.jpg)
+    const trainFolderLower = trainFolderName.toLowerCase()
+    // Try first few images from train folder (0-4)
+    for (let i = 0; i <= 4; i++) {
+      fallbacks.push(`/assets/images/archive/train/${trainFolderName}/${trainFolderLower}_${i}.jpg`)
+    }
+    
+    // Final placeholder fallback
+    fallbacks.push(`https://via.placeholder.com/400/533e17/fffe88?text=${encodeURIComponent(gemName.substring(0, 10))}`)
+    
+    return fallbacks
   }
 
   // Get color family for organizing colors into rows
@@ -2835,7 +2965,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       </div>
 
       {/* Main Feature Selection */}
-      <div className="feature-selection">
+      <div className="feature-selection" style={{ opacity: contentOpacity, transition: 'opacity 0.4s ease' }}>
         {/* Both Form and Adornment: Features as tabs (like main tabs) with icons */}
           <div className="form-feature-tabs">
             {features.map((feature) => {
@@ -2858,8 +2988,8 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
       </div>
 
       {/* Sub-Category Categories */}
-      {activeFeature !== 'Color' && activeFeature !== 'Heel' && !(activeFeature === 'Gems' && shouldShowColors()) && (
-        <div className="filters-section">
+      {activeFeature !== 'Color' && activeFeature !== 'Heel' && activeFeature !== 'Crown' && activeFeature !== 'Cascade' && !(activeFeature === 'Gems' && shouldShowColors()) && (
+        <div className="filters-section" style={{ opacity: contentOpacity, transition: 'opacity 0.4s ease' }}>
           <div className="filter-tabs" ref={filterTabsRef}>
           {hasPreviousCategories && (
             <button 
@@ -2925,7 +3055,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
 
       {/* Content Grid or Slider */}
       {activeFeature === 'Cuts' && activeCategory === 'Size' ? (
-        <div className="content-grid-section">
+        <div className="content-grid-section" style={{ opacity: contentOpacity, transition: 'opacity 0.4s ease' }}>
           <div className="content-grid-wrapper">
             <div className="slider-section">
               <div className="slider-container">
@@ -2944,7 +3074,7 @@ function ConfigurationPanel({ configState = {}, updateConfigState = () => {} }) 
           </div>
         </div>
       ) : (
-        <div className={`content-grid-section ${hasMoreContent ? 'has-more' : ''}`}>
+        <div className={`content-grid-section ${hasMoreContent ? 'has-more' : ''}`} style={{ opacity: contentOpacity, transition: 'opacity 0.4s ease' }}>
           <div 
             ref={contentGridRef}
             className="content-grid-wrapper"
